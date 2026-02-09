@@ -1,120 +1,71 @@
-<!doctype html>
-<html lang="fr">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Ubique — Inscription</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0b1220;
-      color: #ffffff;
-    }
-    .container {
-      max-width: 480px;
-      margin: 60px auto;
-      padding: 24px;
-      background: #111a33;
-      border-radius: 12px;
-    }
-    h1 { text-align: center; margin-bottom: 5px; }
-    p { text-align: center; color: #cbd5f5; margin-top: 0; }
-    label { display:block; margin-top: 14px; font-size:14px; }
-    input, select {
-      width:100%;
-      padding:10px;
-      margin-top:6px;
-      border-radius:6px;
-      border:none;
-      font-size:15px;
-    }
-    button {
-      width:100%;
-      padding:14px;
-      margin-top:22px;
-      background:#22d3ee;
-      border:none;
-      border-radius:8px;
-      font-size:16px;
-      font-weight:bold;
-      cursor:pointer;
-    }
-    button:disabled { opacity:.6; }
-    .msg { margin-top:16px; text-align:center; font-size:14px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubique</title>
+    <style>
+        :root {
+            --bg0: #121212;
+            --bg1: #1E1E1E;
+            --card: #2A2A2A;
+            --text: #E0E0E0;
+            --accent: #FF4081;
+        }
+        body {
+            background-color: var(--bg0);
+            color: var(--text);
+            font-family: Arial, sans-serif;
+        }
+        .grid2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .quote {
+            font-style: italic;
+            margin: 2rem 0;
+        }
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>UBIQUE</h1>
-    <p>Inscription au challenge</p>
-
-    <form id="signupForm">
-      <label>Nom</label>
-      <input type="text" id="name" required>
-
-      <label>Email</label>
-      <input type="email" id="email" required>
-
-      <label>Département</label>
-      <input type="text" id="dept">
-
-      <label>Règle</label>
-      <select id="rule">
-        <option value="1km">1 km / jour</option>
-        <option value="2km">2 km / jour</option>
-        <option value="10min">10 minutes / jour</option>
-      </select>
-
-      <label>Pseudo (optionnel)</label>
-      <input type="text" id="handle">
-
-      <button type="submit" id="btn">Je m’inscris</button>
-      <div class="msg" id="msg"></div>
-    </form>
-  </div>
-
-  <script>
-    // ✅ TON URL APPS SCRIPT (finit par /exec)
-    const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-
-    const form = document.getElementById("signupForm");
-    const msg = document.getElementById("msg");
-    const btn = document.getElementById("btn");
-
-    form.addEventListener("submit", async function(e) {
-      e.preventDefault();
-
-      btn.disabled = true;
-      btn.textContent = "Envoi...";
-
-      const payload = new URLSearchParams({
-        name: document.getElementById("name").value,
-        email: document.getElementById("email").value,
-        dept: document.getElementById("dept").value,
-        rule: document.getElementById("rule").value,
-        handle: document.getElementById("handle").value,
-        created_at: new Date().toISOString()
-      });
-
-      try {
-        await fetch(ENDPOINT_URL, {
-          method: "POST",
-          body: payload,
-          mode: "no-cors"
-        });
-
-        msg.textContent = "✅ Inscription envoyée ! (vérifie ta Google Sheet)";
-        form.reset();
-      } catch (err) {
-        msg.textContent = "❌ Erreur lors de l’envoi";
-      }
-
-      btn.disabled = false;
-      btn.textContent = "Je m’inscris";
-    });
-  </script>
+    <header>
+        <h1>Welcome to Ubique</h1>
+    </header>
+    <main>
+        <form class="grid2">
+            <input type="text" placeholder="Your Name" required />
+            <input type="email" placeholder="Your Email" required />
+            <button type="submit">Submit</button>
+        </form>
+        <section class="quote">
+            <p>“The only thing more contagious than a good attitude is a bad one.” - David Goggins</p>
+        </section>
+        <div class="dropdown">
+            <label for="options">Choose an option:</label>
+            <select id="options">
+                <option value="1">Option 1</option>
+                <option value="2">Option 2</option>
+                <option value="3">Option 3</option>
+            </select>
+            <svg width="24" height="24"><path d="M7 10l5 5 5-5H7z" fill="currentColor"/></svg>
+        </div>
+    </main>
+    <footer>
+        <div id="clock"></div>
+        <script>
+            function tick() {
+                const now = new Date();
+                document.getElementById('clock').innerText = now.toUTCString();
+            }
+            setInterval(tick, 1000);
+            tick();
+        </script>
+    </footer>
 </body>
 </html>
