@@ -4,77 +4,73 @@
 <meta charset="utf-8">
 <title>Inscription — UBIQUE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
+:root{
+  --bg:#0b0f14;
+  --card:#121821;
+  --border:#1f2630;
+  --text:#e6edf3;
+  --muted:#7d8590;
+  --accent:#f04e23;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
 body{
-  margin:0;
-  background:#0a0d12;
-  color:#eaeef2;
-  font-family:system-ui;
+  background:
+    radial-gradient(800px 500px at 20% -10%, rgba(240,78,35,.15), transparent 60%),
+    var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:var(--text);
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
+
 .card{
   width:420px;
+  background:var(--card);
+  padding:40px 35px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
 }
+
+h2{
+  margin-bottom:8px;
+  font-weight:600;
+}
+
+.subtitle{
+  color:var(--muted);
+  font-size:14px;
+  margin-bottom:30px;
+}
+
 input,select{
   width:100%;
   padding:14px;
-  margin-bottom:14px;
-  background:#121821;
-  border:1px solid #1f2630;
-  color:#eaeef2;
-  border-radius:4px;
+  margin-bottom:16px;
+  background:#0f141b;
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--text);
+  font-size:14px;
+  transition:.15s;
 }
+
+input:focus,select:focus{
+  outline:none;
+  border-color:var(--accent);
+}
+
 button{
   width:100%;
   padding:16px;
-  background:#f04e23;
-  border:0;
+  background:var(--accent);
+  border:none;
+  border-radius:6px;
   color:white;
-  font-weight:800;
-  letter-spacing:1px;
-  border-radius:4px;
-  cursor:pointer;
-}
-</style>
-</head>
-<body>
-
-<div class="card">
-<h2>Inscription</h2>
-
-<form id="signupForm">
-<input type="text" id="name" placeholder="Nom" required>
-<input type="email" id="email" placeholder="Email" required>
-<select id="rule">
-  <option value="1km">1 km / jour</option>
-  <option value="3km">3 km / jour</option>
-</select>
-<button type="submit">Continuer</button>
-</form>
-
-</div>
-
-<script>
-const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-
-document.getElementById("signupForm").addEventListener("submit", async function(e){
-  e.preventDefault();
-
-  const payload = new URLSearchParams({
-    name: name.value,
-    email: email.value,
-    rule: rule.value,
-    created_at: new Date().toISOString()
-  });
-
-  await fetch(ENDPOINT_URL,{method:"POST",body:payload,mode:"no-cors"});
-
-  window.location.href="/connect.html";
-});
-</script>
-
-</body>
-</html>
+  font
