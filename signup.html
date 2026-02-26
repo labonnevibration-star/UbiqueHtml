@@ -1,76 +1,36 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<title>Inscription — UBIQUE</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <title>Inscription — UBIQUE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<style>
-:root{
-  --bg:#0b0f14;
-  --card:#121821;
-  --border:#1f2630;
-  --text:#e6edf3;
-  --muted:#7d8590;
-  --accent:#f04e23;
-}
+  <style>
+    :root{
+      --bg:#070A12;
+      --bg2:#0B1220;
+      --card: rgba(18,24,33,.92);
+      --line: rgba(255,255,255,.10);
+      --text:#EAF0FF;
+      --muted:#9AA6C3;
+      --accent:#F04E23;
+      --accent2:#FF7A3D;
+      --shadow: 0 30px 90px rgba(0,0,0,.55);
+      --radius: 16px;
+    }
 
-*{box-sizing:border-box;margin:0;padding:0}
-
-body{
-  background:
-    radial-gradient(800px 500px at 20% -10%, rgba(240,78,35,.15), transparent 60%),
-    var(--bg);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  color:var(--text);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.card{
-  width:420px;
-  background:var(--card);
-  padding:40px 35px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  box-shadow:0 20px 60px rgba(0,0,0,.6);
-}
-
-h2{
-  margin-bottom:8px;
-  font-weight:600;
-}
-
-.subtitle{
-  color:var(--muted);
-  font-size:14px;
-  margin-bottom:30px;
-}
-
-input,select{
-  width:100%;
-  padding:14px;
-  margin-bottom:16px;
-  background:#0f141b;
-  border:1px solid var(--border);
-  border-radius:6px;
-  color:var(--text);
-  font-size:14px;
-  transition:.15s;
-}
-
-input:focus,select:focus{
-  outline:none;
-  border-color:var(--accent);
-}
-
-button{
-  width:100%;
-  padding:16px;
-  background:var(--accent);
-  border:none;
-  border-radius:6px;
-  color:white;
-  font
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 16px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 20% -10%, rgba(240,78,35,.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 0%, rgba(255,122,61,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg2), var(--bg));
+    }
