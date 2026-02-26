@@ -6,134 +6,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root{
-  --bg0:#070A12;
-  --bg1:#0B1220;
-  --card:#0F172A;
-  --text:#EAF0FF;
-  --muted:#A9B4D0;
-  --line:rgba(255,255,255,.10);
-  --accent:#FC4C02; /* Strava orange */
-  --accent2:#FF7A3D;
-  --blue1:#22D3EE;
-  --blue2:#60A5FA;
-  --radius:16px;
-}
-
-*{box-sizing:border-box}
 body{
   margin:0;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background:
-    radial-gradient(900px 600px at 15% -10%, rgba(96,165,250,.22), transparent 60%),
-    linear-gradient(180deg,var(--bg1),var(--bg0));
-  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+  background:#0B1220;
+  color:#EAF0FF;
   display:flex;
   justify-content:center;
   padding:40px 20px;
 }
-
 .card{
   width:520px;
-  background:rgba(15,23,42,.85);
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  padding:30px 24px;
-  box-shadow:0 30px 70px rgba(0,0,0,.5);
+  background:#111C36;
+  padding:30px;
+  border-radius:16px;
 }
-
-h1{
-  margin:0 0 6px;
-  font-size:30px;
-}
-
-.subtitle{
-  color:var(--muted);
-  font-size:14px;
-  margin-bottom:20px;
-}
-
-.quote{
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:14px;
-  margin-bottom:20px;
-  background:rgba(2,6,23,.4);
-}
-
-.quote b{font-weight:700}
-
-.section-title{
-  font-size:12px;
-  letter-spacing:.1em;
-  text-transform:uppercase;
-  color:var(--muted);
-  margin-bottom:10px;
-}
-
-.cta-strava{
-  display:block;
-  width:100%;
-  padding:14px;
-  border-radius:14px;
-  text-align:center;
-  text-decoration:none;
-  font-weight:800;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  color:white;
-  margin-bottom:24px;
-  transition:.15s;
-}
-
-.cta-strava:hover{transform:translateY(-2px)}
-
-.cta{
-  width:100%;
-  padding:14px;
-  border-radius:14px;
-  font-weight:800;
-  border:0;
-  cursor:pointer;
-  background:linear-gradient(90deg,var(--blue1),var(--blue2));
-  color:#06101b;
-}
-
-.field{margin-bottom:12px}
+h1{margin-top:0}
 input,select{
   width:100%;
   padding:12px;
+  margin-bottom:12px;
   border-radius:12px;
-  border:1px solid var(--line);
-  background:rgba(2,6,23,.5);
-  color:var(--text);
+  border:none;
 }
-
-input::placeholder{color:rgba(169,180,208,.5)}
-
-.divider{
-  text-align:center;
-  margin:20px 0;
-  font-size:12px;
-  color:var(--muted);
-  position:relative;
-}
-.divider:before,
-.divider:after{
-  content:"";
-  position:absolute;
-  top:50%;
-  width:40%;
-  height:1px;
-  background:var(--line);
-}
-.divider:before{left:0}
-.divider:after{right:0}
-
-.footer{
-  margin-top:20px;
-  font-size:12px;
-  color:var(--muted);
-  text-align:center;
+button{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+  font-weight:800;
+  background:linear-gradient(90deg,#22D3EE,#60A5FA);
+  cursor:pointer;
 }
 </style>
 </head>
@@ -142,60 +45,28 @@ input::placeholder{color:rgba(169,180,208,.5)}
 
 <div class="card">
 
-  <h1>Challenge Goggins</h1>
-  <div class="subtitle">Discipline. Constance. Zéro excuse.</div>
+<h1>Challenge Goggins</h1>
+<p>Inscription au défi.</p>
 
-  <div class="quote">
-    <b>"You don't know me son!"</b><br>
-    — esprit: constance quotidienne.
-  </div>
+<form id="signupForm">
 
-  <div class="section-title">Synchronisation automatique</div>
+<input type="text" id="name" placeholder="Nom" required>
+<input type="email" id="email" placeholder="Email" required>
+<input type="text" id="dept" placeholder="Département (optionnel)">
+<select id="rule" required>
+  <option value="1km">1 km / jour</option>
+  <option value="3km">3 km / jour</option>
+</select>
+<input type="text" id="handle" placeholder="Pseudo (optionnel)">
 
-  <a 
-    href="https://www.strava.com/oauth/authorize?client_id=200307&response_type=code&redirect_uri=https%3A%2F%2Fubique.netlify.app%2F.netlify%2Ffunctions%2Fstrava-auth&approval_prompt=auto&scope=read,activity:read_all"
-    class="cta-strava">
-    Connecter avec Strava
-  </a>
+<button type="submit">Je m’inscris</button>
 
-  <div class="divider">OU inscription manuelle</div>
-
-  <form id="signupForm">
-
-    <div class="field">
-      <input type="text" id="name" placeholder="Nom" required>
-    </div>
-
-    <div class="field">
-      <input type="email" id="email" placeholder="Email" required>
-    </div>
-
-    <div class="field">
-      <input type="text" id="dept" placeholder="Département (optionnel)">
-    </div>
-
-    <div class="field">
-      <select id="rule" required>
-        <option value="1km">1 km / jour</option>
-        <option value="3km">3 km / jour</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <input type="text" id="handle" placeholder="Pseudo (optionnel)">
-    </div>
-
-    <button type="submit" class="cta">Je m’inscris</button>
-
-  </form>
-
-  <div class="footer">
-    UBIQUE • Netlify • Strava • Google Sheet
-  </div>
+</form>
 
 </div>
 
 <script>
+
 const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
 document.getElementById("signupForm").addEventListener("submit", async function(e) {
@@ -212,8 +83,10 @@ document.getElementById("signupForm").addEventListener("submit", async function(
 
   await fetch(ENDPOINT_URL, { method:"POST", body:payload, mode:"no-cors" });
 
-  alert("Inscription envoyée. Stay hard.");
+  window.location.href = "/connect.html";
+
 });
+
 </script>
 
 </body>
