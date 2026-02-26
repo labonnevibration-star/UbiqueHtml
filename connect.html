@@ -4,49 +4,37 @@
 <meta charset="utf-8">
 <title>Connexion Strava — UBIQUE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 body{
   margin:0;
+  background:#0a0d12;
+  color:#eaeef2;
   font-family:system-ui;
-  background:#0B1220;
-  color:#EAF0FF;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
-.card{
-  background:#111C36;
-  padding:40px;
-  border-radius:16px;
-  width:420px;
-  text-align:center;
-}
+.card{text-align:center}
 a{
-  display:block;
-  margin-top:20px;
-  padding:14px;
-  border-radius:12px;
+  display:inline-block;
+  padding:18px 50px;
+  background:#f04e23;
+  color:white;
   text-decoration:none;
   font-weight:800;
-  background:linear-gradient(90deg,#FC4C02,#FF7A3D);
-  color:white;
+  letter-spacing:2px;
+  border-radius:4px;
 }
 </style>
 </head>
-
 <body>
 
 <div class="card">
-
-<h2>Dernière étape 🔥</h2>
-<p>Connecte ton compte Strava pour activer la synchronisation automatique.</p>
-
+<h2>Connecte ton Strava</h2>
 <a href="https://www.strava.com/oauth/authorize?client_id=200307&response_type=code&redirect_uri=https%3A%2F%2Fubique.netlify.app%2F.netlify%2Ffunctions%2Fstrava-auth&approval_prompt=auto&scope=read,activity:read_all">
-Connecter avec Strava
+CONNECTER STRAVA
 </a>
-
 </div>
 
 </body>
