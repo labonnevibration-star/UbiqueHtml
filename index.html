@@ -4,422 +4,122 @@
   <meta charset="utf-8">
   <title>UBIQUE — Challenge Goggins</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
-    :root{
-      --bg0:#070A12;
-      --bg1:#0B1220;
-      --card:#0F172A;
-      --card2:#111C36;
-      --text:#EAF0FF;
-      --muted:#A9B4D0;
-      --line:rgba(255,255,255,.10);
-      --glow:rgba(34,211,238,.35);
-      --accent:#22D3EE;
-      --accent2:#60A5FA;
-      --danger:#FB7185;
-      --shadow: 0 24px 70px rgba(0,0,0,.55);
-      --radius:16px;
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
     body{
       margin:0;
-      color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:
-        radial-gradient(900px 600px at 15% -10%, rgba(96,165,250,.22), transparent 60%),
-        radial-gradient(900px 600px at 85% 0%, rgba(34,211,238,.18), transparent 55%),
-        radial-gradient(1200px 900px at 50% 115%, rgba(34,211,238,.10), transparent 60%),
-        linear-gradient(180deg, var(--bg1), var(--bg0));
-      overflow-x:hidden;
-    }
-
-    .wrap{
-      min-height:100%;
+      background:#0B1220;
+      color:#EAF0FF;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       display:flex;
-      align-items:center;
       justify-content:center;
-      padding: 28px 16px 40px;
+      padding:40px 20px;
     }
-
     .card{
-      width: min(520px, 100%);
-      border-radius: var(--radius);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      position:relative;
-      overflow:hidden;
+      width:520px;
+      background:#111C36;
+      padding:28px;
+      border-radius:16px;
     }
-
-    .card::before{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      background:
-        radial-gradient(520px 240px at 18% 0%, rgba(34,211,238,.22), transparent 60%),
-        radial-gradient(520px 240px at 82% 0%, rgba(96,165,250,.18), transparent 65%);
-      pointer-events:none;
-      filter: blur(0px);
-      opacity:.95;
-    }
-
-    .inner{
-      position:relative;
-      padding: 28px 22px 22px;
-      background: linear-gradient(180deg, rgba(15,23,42,.78), rgba(15,23,42,.58));
-      backdrop-filter: blur(8px);
-    }
-
-    .top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom: 18px;
-    }
-
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      letter-spacing:.22em;
-      font-weight:800;
-      font-size: 14px;
-      text-transform: uppercase;
-    }
-
-    .mark{
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(34,211,238,.90), rgba(96,165,250,.35) 55%, rgba(255,255,255,.06) 100%);
-      box-shadow: 0 14px 40px rgba(34,211,238,.12);
-      border: 1px solid rgba(255,255,255,.12);
-      position:relative;
-    }
-    .mark::after{
-      content:"";
-      position:absolute;
-      inset:8px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.18);
-      opacity:.85;
-    }
-
-    .pill{
-      font-size:12px;
-      color: rgba(234,240,255,.85);
-      border: 1px solid rgba(255,255,255,.14);
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.04);
-    }
-
-    h1{
-      margin: 10px 0 2px;
-      font-size: 30px;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-    }
-
-    .subtitle{
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .quote{
-      margin: 18px 0 0;
-      padding: 14px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(2,6,23,.35);
-      position:relative;
-    }
-    .quote::before{
-      content:"“";
-      position:absolute;
-      left: 12px;
-      top: -8px;
-      font-size: 44px;
-      opacity:.20;
-    }
-    .quote b{
-      color: rgba(234,240,255,.92);
-      font-weight: 700;
-    }
-    .quote span{
-      display:block;
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 6px;
-    }
-
-    form{
-      margin-top: 18px;
-      display:grid;
-      gap: 12px;
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    label{
-      display:block;
-      font-size: 12px;
-      color: rgba(234,240,255,.75);
-      margin: 0 0 6px;
-      letter-spacing:.02em;
-    }
-
-    .field{
-      background: rgba(2,6,23,.45);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      padding: 10px 12px;
-      transition: border .15s ease, transform .15s ease, box-shadow .15s ease;
-    }
-    .field:focus-within{
-      border-color: rgba(34,211,238,.45);
-      box-shadow: 0 0 0 6px rgba(34,211,238,.10);
-      transform: translateY(-1px);
-    }
-
-    input, select{
-      width:100%;
-      border:0;
-      outline:0;
-      background: transparent;
-      color: var(--text);
-      font-size: 14px;
-      padding: 2px 0;
-    }
-    input::placeholder{ color: rgba(169,180,208,.55); }
-
-    select{
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      padding-right: 28px;
-      cursor:pointer;
-    }
-
-    .selectWrap{
-      position:relative;
-    }
-    .chev{
-      position:absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 18px;
-      height: 18px;
-      opacity:.75;
-      pointer-events:none;
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,.3));
-    }
-
+    h1{margin-top:0;}
     .cta{
-      margin-top: 6px;
-      border: 0;
+      display:block;
       width:100%;
-      padding: 14px 14px;
-      border-radius: 14px;
-      font-weight: 800;
-      letter-spacing:.02em;
+      padding:14px;
+      border-radius:12px;
+      font-weight:800;
+      text-align:center;
+      text-decoration:none;
+      margin-top:14px;
+      background:linear-gradient(90deg,#22D3EE,#60A5FA);
+      color:#06101b;
+    }
+    .field{margin-bottom:12px;}
+    input,select{
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border:none;
+    }
+    button{
+      width:100%;
+      padding:14px;
+      border-radius:12px;
+      border:none;
+      font-weight:800;
+      background:#22D3EE;
+      color:#06101b;
       cursor:pointer;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      color: #06101b;
-      box-shadow: 0 18px 40px rgba(34,211,238,.18);
-      transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
-    }
-    .cta:hover{ transform: translateY(-1px); filter: brightness(1.03); }
-    .cta:active{ transform: translateY(0px); filter: brightness(.98); }
-    .cta:disabled{ opacity:.65; cursor:not-allowed; transform:none; }
-
-    .fine{
-      margin: 10px 0 0;
-      font-size: 12px;
-      color: rgba(169,180,208,.75);
-      text-align:center;
-      line-height: 1.45;
-    }
-
-    .msg{
-      margin-top: 10px;
-      text-align:center;
-      font-size: 13px;
-      color: rgba(234,240,255,.92);
-      min-height: 18px;
-    }
-
-    .footer{
-      border-top: 1px solid rgba(255,255,255,.08);
-      margin-top: 18px;
-      padding-top: 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      color: rgba(169,180,208,.70);
-      font-size: 12px;
-    }
-
-    .dot{
-      width: 8px; height:8px; border-radius: 999px;
-      background: rgba(34,211,238,.85);
-      box-shadow: 0 0 0 6px rgba(34,211,238,.12);
-      display:inline-block;
-      margin-right: 8px;
-      vertical-align: middle;
-    }
-
-    @media (max-width:520px){
-      .inner{ padding: 22px 16px 16px; }
-      .grid2{ grid-template-columns: 1fr; }
-      h1{ font-size: 28px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="inner">
-        <div class="top">
-          <div class="brand">
-            <div class="mark" aria-hidden="true"></div>
-            <div>UBIQUE</div>
-          </div>
-          <div class="pill">Challenge privé</div>
-        </div>
 
-        <h1>Challenge Goggins</h1>
-        <p class="subtitle">Inscription rapide — choisis ta règle et entre tes infos.</p>
+<div class="card">
 
-        <div class="quote">
-          <b>"you don’t know me son!"</b>
-          <span>— esprit: discipline, constance, zéro excuse.</span>
-        </div>
+  <h1>Challenge Goggins</h1>
 
-        <form id="signupForm">
-          <div class="grid2">
-            <div>
-              <label for="name">Nom</label>
-              <div class="field">
-                <input type="text" id="name" placeholder="Ton nom" required>
-              </div>
-            </div>
+  <p>Discipline. Constance. Zéro excuse.</p>
 
-            <div>
-              <label for="email">Email</label>
-              <div class="field">
-                <input type="email" id="email" placeholder="ton@email.com" required>
-              </div>
-            </div>
-          </div>
+  <!-- 🔥 BOUTON STRAVA -->
+  <a 
+    href="https://www.strava.com/oauth/authorize?client_id=200307&response_type=code&redirect_uri=https%3A%2F%2Fubique.netlify.app%2F.netlify%2Ffunctions%2Fstrava-auth&approval_prompt=auto&scope=read,activity:read_all"
+    class="cta">
+    Connecter avec Strava
+  </a>
 
-          <div class="grid2">
-            <div>
-              <label for="dept">Département</label>
-              <div class="field">
-                <input type="text" id="dept" placeholder="Optionnel">
-              </div>
-            </div>
+  <hr style="margin:20px 0; opacity:0.3;">
 
-            <div>
-              <label for="rule">Règle</label>
-              <div class="field selectWrap">
-                <select id="rule" required>
-                  <option value="1km">1 km / jour</option>
-                  <option value="3km">3 km / jour</option>
-                </select>
-
-                <!-- petite flèche (svg) -->
-                <svg class="chev" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M7 10l5 5 5-5" stroke="rgba(234,240,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label for="handle">Pseudo (optionnel)</label>
-            <div class="field">
-              <input type="text" id="handle" placeholder="@tonpseudo">
-            </div>
-          </div>
-
-          <button type="submit" class="cta" id="btn">Je m’inscris</button>
-          <div class="msg" id="msg"></div>
-
-          <div class="fine">
-            En soumettant, tu acceptes la règle choisie et le suivi du challenge.
-          </div>
-        </form>
-
-        <div class="footer">
-          <div><span class="dot"></span>Déploiement Netlify • Sync Google Sheet</div>
-          <div id="clock"></div>
-        </div>
-      </div>
+  <!-- FORMULAIRE INSCRIPTION -->
+  <form id="signupForm">
+    <div class="field">
+      <input type="text" id="name" placeholder="Nom" required>
     </div>
-  </div>
 
-  <script>
-    // ✅ Ton endpoint Apps Script (finit par /exec)
-    const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+    <div class="field">
+      <input type="email" id="email" placeholder="Email" required>
+    </div>
 
-    const form = document.getElementById("signupForm");
-    const msg = document.getElementById("msg");
-    const btn = document.getElementById("btn");
+    <div class="field">
+      <input type="text" id="dept" placeholder="Département (optionnel)">
+    </div>
 
-    // petite horloge (cosmétique)
-    const clock = document.getElementById("clock");
-    function tick(){
-      const d = new Date();
-      clock.textContent = d.toLocaleString("fr-CA", { hour: "2-digit", minute:"2-digit" });
-    }
-    tick(); setInterval(tick, 15000);
+    <div class="field">
+      <select id="rule" required>
+        <option value="1km">1 km / jour</option>
+        <option value="3km">3 km / jour</option>
+      </select>
+    </div>
 
-    form.addEventListener("submit", async function(e) {
-      e.preventDefault();
+    <div class="field">
+      <input type="text" id="handle" placeholder="Pseudo (optionnel)">
+    </div>
 
-      btn.disabled = true;
-      btn.textContent = "Envoi…";
-      msg.textContent = "";
+    <button type="submit">Je m’inscris</button>
+  </form>
 
-      const payload = new URLSearchParams({
-        name: document.getElementById("name").value.trim(),
-        email: document.getElementById("email").value.trim(),
-        dept: document.getElementById("dept").value.trim(),
-        rule: document.getElementById("rule").value,
-        handle: document.getElementById("handle").value.trim(),
-        created_at: new Date().toISOString()
-      });
+</div>
 
-      try {
-        // no-cors => on ne peut pas lire la réponse, mais l'envoi part.
-        await fetch(ENDPOINT_URL, { method: "POST", body: payload, mode: "no-cors" });
+<script>
+const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
-        msg.textContent = "✅ Inscription envoyée. Stay hard.";
-        form.reset();
-      } catch (err) {
-        msg.textContent = "❌ Erreur lors de l’envoi. Réessaie.";
-      }
+document.getElementById("signupForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
 
-      btn.disabled = false;
-      btn.textContent = "Je m’inscris";
-    });
-  </script>
+  const payload = new URLSearchParams({
+    name: document.getElementById("name").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    dept: document.getElementById("dept").value.trim(),
+    rule: document.getElementById("rule").value,
+    handle: document.getElementById("handle").value.trim(),
+    created_at: new Date().toISOString()
+  });
+
+  await fetch(ENDPOINT_URL, { method: "POST", body: payload, mode: "no-cors" });
+
+  alert("Inscription envoyée. Stay hard.");
+});
+</script>
+
 </body>
 </html>
