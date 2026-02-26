@@ -25,6 +25,7 @@ exports.handler = async (event) => {
       };
     }
 
+    // 1) Exchange code -> tokens (Strava)
     const res = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,6 +47,45 @@ exports.handler = async (event) => {
       };
     }
 
+    // 2) Save refresh_token to Google Sheets (Apps Script)
+    const gsUrl = process.env.GS_WEBAPP_URL;
+    const writeKey = process.env.UBIQUE_WRITE_KEY;
+
+    if (!gsUrl || !writeKey) {
+      return {
+        statusCode: 500,
+        body: "Missing GS_WEBAPP_URL / UBIQUE_WRITE_KEY in Netlify env vars.",
+      };
+    }
+
+    const saveRes = await fetch(gsUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: writeKey,
+        athlete_id: data.athlete?.id,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_at,
+        scope: qp.scope || "",
+        updated_at: new Date().toISOString(),
+      }),
+    });
+
+    const saveJson = await saveRes.json().catch(() => ({}));
+
+    if (!saveRes.ok || saveJson?.ok !== true) {
+      return {
+        statusCode: 500,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          { message: "Failed saving to Google Sheets", saveJson },
+          null,
+          2
+        ),
+      };
+    }
+
+    // 3) Return success (don’t leak tokens in production later)
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
@@ -53,8 +93,7 @@ exports.handler = async (event) => {
         {
           ok: true,
           athlete_id: data.athlete?.id,
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
+          saved_to_sheet: true,
           expires_at: data.expires_at,
         },
         null,
