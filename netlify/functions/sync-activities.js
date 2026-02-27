@@ -6,21 +6,46 @@ exports.handler = async () => {
     const client_id = process.env.STRAVA_CLIENT_ID;
     const client_secret = process.env.STRAVA_CLIENT_SECRET;
 
-    if (!gsUrl || !writeKey) {
-      return { statusCode: 500, body: "Missing env vars" };
+    if (!gsUrl || !writeKey || !client_id || !client_secret) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ ok:false, error:"Missing env vars" })
+      };
     }
 
-    // 1️⃣ Get Athletes from Google Sheet
+    // 1️⃣ Get athletes safely
     const athletesRes = await fetch(gsUrl + "?mode=getAthletes");
-    const athletesData = await athletesRes.json();
+    const text = await athletesRes.text();
+
+    let athletesData;
+    try {
+      athletesData = JSON.parse(text);
+    } catch (err) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          ok:false,
+          error:"Apps Script did not return JSON",
+          preview:text.slice(0,300)
+        })
+      };
+    }
 
     const athletes = athletesData.athletes || [];
+    if (!Array.isArray(athletes)) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ ok:false, error:"Invalid athletes format" })
+      };
+    }
 
     let synced = 0;
 
     for (const athlete of athletes) {
 
-      // 2️⃣ Refresh access_token
+      if (!athlete.refresh_token) continue;
+
+      // 2️⃣ Refresh token
       const tokenRes = await fetch("https://www.strava.com/oauth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,12 +57,19 @@ exports.handler = async () => {
         }),
       });
 
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok) continue;
+      const tokenText = await tokenRes.text();
+      let tokenData;
+      try {
+        tokenData = JSON.parse(tokenText);
+      } catch {
+        continue;
+      }
+
+      if (!tokenRes.ok || !tokenData.access_token) continue;
 
       const access_token = tokenData.access_token;
 
-      // 3️⃣ Get activities (last 10)
+      // 3️⃣ Fetch activities safely
       const activitiesRes = await fetch(
         "https://www.strava.com/api/v3/athlete/activities?per_page=10",
         {
@@ -45,14 +77,20 @@ exports.handler = async () => {
         }
       );
 
-      const activities = await activitiesRes.json();
+      const activitiesText = await activitiesRes.text();
+      let activities;
+      try {
+        activities = JSON.parse(activitiesText);
+      } catch {
+        continue;
+      }
+
       if (!Array.isArray(activities)) continue;
 
       for (const act of activities) {
 
-        const distance_km = act.distance / 1000;
+        const distance_km = act.distance ? act.distance / 1000 : 0;
 
-        // 4️⃣ Save to Sheet
         await fetch(gsUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -78,6 +116,9 @@ exports.handler = async () => {
     };
 
   } catch (e) {
-    return { statusCode: 500, body: e.message };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ ok:false, fatal:e.message })
+    };
   }
 };
