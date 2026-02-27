@@ -3,7 +3,9 @@ exports.handler = async (event) => {
     const qp = event.queryStringParameters || {};
     const code = qp.code;
     const error = qp.error;
-    const email = qp.state; // 🔥 IMPORTANT
+    const decoded = JSON.parse(Buffer.from(qp.state, 'base64').toString());
+const email = decoded.email;
+const handle = decoded.handle; // 🔥 IMPORTANT
 
     if (error) {
       return { statusCode: 400, body: `Strava error: ${error}` };
