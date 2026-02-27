@@ -1,6 +1,5 @@
 exports.handler = async () => {
   try {
-
     const gsUrl = process.env.GS_WEBAPP_URL;
     const writeKey = process.env.UBIQUE_WRITE_KEY;
     const client_id = process.env.STRAVA_CLIENT_ID;
@@ -9,33 +8,33 @@ exports.handler = async () => {
     if (!gsUrl || !writeKey || !client_id || !client_secret) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ ok:false, error:"Missing env vars" })
+        body: JSON.stringify({ ok: false, error: "Missing env vars" })
       };
     }
 
-    // 1️⃣ Get athletes safely
+    // 1️⃣ Get athletes from Apps Script
     const athletesRes = await fetch(gsUrl + "?mode=getAthletes");
-    const text = await athletesRes.text();
+    const athletesText = await athletesRes.text();
 
-    let athletesData;
+    let athletesJson;
     try {
-      athletesData = JSON.parse(text);
+      athletesJson = JSON.parse(athletesText);
     } catch (err) {
       return {
         statusCode: 500,
         body: JSON.stringify({
-          ok:false,
-          error:"Apps Script did not return JSON",
-          preview:text.slice(0,300)
+          ok: false,
+          error: "Apps Script did not return JSON",
+          preview: athletesText.slice(0, 300)
         })
       };
     }
 
-    const athletes = athletesData.athletes || [];
+    const athletes = athletesJson.athletes || [];
     if (!Array.isArray(athletes)) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ ok:false, error:"Invalid athletes format" })
+        body: JSON.stringify({ ok: false, error: "Invalid athletes format" })
       };
     }
 
@@ -54,30 +53,30 @@ exports.handler = async () => {
           client_secret,
           grant_type: "refresh_token",
           refresh_token: athlete.refresh_token
-        }),
+        })
       });
 
       const tokenText = await tokenRes.text();
-      let tokenData;
+
+      let tokenJson;
       try {
-        tokenData = JSON.parse(tokenText);
+        tokenJson = JSON.parse(tokenText);
       } catch {
         continue;
       }
 
-      if (!tokenRes.ok || !tokenData.access_token) continue;
+      if (!tokenRes.ok || !tokenJson.access_token) continue;
 
-      const access_token = tokenData.access_token;
+      const access_token = tokenJson.access_token;
 
-      // 3️⃣ Fetch activities safely
+      // 3️⃣ Get activities
       const activitiesRes = await fetch(
         "https://www.strava.com/api/v3/athlete/activities?per_page=10",
-        {
-          headers: { Authorization: `Bearer ${access_token}` }
-        }
+        { headers: { Authorization: `Bearer ${access_token}` } }
       );
 
       const activitiesText = await activitiesRes.text();
+
       let activities;
       try {
         activities = JSON.parse(activitiesText);
@@ -101,10 +100,9 @@ exports.handler = async () => {
             athlete_id: athlete.athlete_id,
             activity_id: act.id,
             date: act.start_date,
-            distance_km: distance_km
+            distance_km
           })
         });
-
       }
 
       synced++;
@@ -118,7 +116,7 @@ exports.handler = async () => {
   } catch (e) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ ok:false, fatal:e.message })
+      body: JSON.stringify({ ok: false, fatal: e.message })
     };
   }
 };
