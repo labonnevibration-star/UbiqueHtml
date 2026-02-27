@@ -46,11 +46,18 @@ a{
 <script>
 const params = new URLSearchParams(window.location.search);
 const email = params.get("email");
+const handle = params.get("handle");
 
 if (!email) {
   alert("Email manquant");
   window.location.href = "/signup.html";
 }
+
+// 🔥 Encode email + handle
+const statePayload = btoa(JSON.stringify({
+  email: email,
+  handle: handle || ""
+}));
 
 const stravaUrl =
   "https://www.strava.com/oauth/authorize?client_id=200307" +
@@ -58,10 +65,7 @@ const stravaUrl =
   "&redirect_uri=" + encodeURIComponent("https://ubique.netlify.app/.netlify/functions/strava-auth") +
   "&approval_prompt=auto" +
   "&scope=read,activity:read_all" +
-  "&state=" + encodeURIComponent(email);
+  "&state=" + encodeURIComponent(statePayload);
 
 document.getElementById("stravaLink").href = stravaUrl;
 </script>
-
-</body>
-</html>
