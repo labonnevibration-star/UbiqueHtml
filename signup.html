@@ -157,7 +157,6 @@ const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJ
 document.getElementById("signupForm").addEventListener("submit", async function(e){
   e.preventDefault();
 
-  // 1️⃣ On récupère l'email une seule fois
   const emailValue = document.getElementById("email").value.trim();
 
   const payload = new URLSearchParams({
@@ -175,7 +174,7 @@ document.getElementById("signupForm").addEventListener("submit", async function(
       mode:"no-cors"
     });
 
-    // 2️⃣ Redirection AVEC email
+    // 🔥 Redirection avec email
     window.location.href = "/connect.html?email=" + encodeURIComponent(emailValue);
 
   } catch(err) {
@@ -183,3 +182,6 @@ document.getElementById("signupForm").addEventListener("submit", async function(
   }
 });
 </script>
+
+</body>
+</html>
