@@ -4,43 +4,106 @@
 <meta charset="utf-8">
 <title>Connexion Strava — UBIQUE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --accent:#fc4c02;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
 body{
-  margin:0;
-  background:#0c1117;
-  font-family:system-ui;
-  color:#e6edf3;
+  background:
+    radial-gradient(900px 500px at 50% -10%, rgba(252,76,2,.15), transparent 60%),
+    var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:var(--text);
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
+  padding:20px;
 }
+
 .card{
-  width:420px;
-  background:#161b22;
-  padding:50px 40px;
-  border-radius:14px;
+  width:100%;
+  max-width:460px;
+  background:var(--card);
+  padding:60px 45px;
+  border-radius:24px;
   text-align:center;
-  border:1px solid #2a2f36;
+  box-shadow:0 40px 100px rgba(0,0,0,.6);
+  border:1px solid rgba(255,255,255,.05);
+  backdrop-filter:blur(10px);
 }
+
+.flame{
+  font-size:40px;
+  margin-bottom:25px;
+  filter:drop-shadow(0 0 10px rgba(252,76,2,.5));
+}
+
+h1{
+  font-size:24px;
+  margin-bottom:12px;
+  font-weight:600;
+}
+
+p{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:40px;
+  line-height:1.6;
+}
+
 a{
   display:block;
   width:100%;
-  padding:16px;
-  background:#fc4c02;
+  padding:18px;
+  border-radius:14px;
+  background:linear-gradient(90deg,#fc4c02,#ff7a3d);
   color:white;
-  font-weight:800;
-  border-radius:8px;
   text-decoration:none;
+  font-weight:700;
+  letter-spacing:1px;
+  transition:.2s ease;
+}
+
+a:hover{
+  transform:translateY(-2px);
+  box-shadow:0 15px 40px rgba(252,76,2,.4);
+}
+
+.footer{
+  margin-top:35px;
+  font-size:12px;
+  color:var(--muted);
 }
 </style>
 </head>
+
 <body>
 
 <div class="card">
-  <h2>🔥 Synchronisation Strava</h2>
-  <p>Active le suivi automatique.</p>
+
+  <div class="flame">🔥</div>
+
+  <h1>Connexion Strava</h1>
+
+  <p>
+    Autorise l’accès pour activer le suivi automatique du challenge.
+  </p>
+
   <a id="stravaLink">CONNECTER STRAVA</a>
+
+  <div class="footer">
+    Discipline quotidienne.
+  </div>
+
 </div>
 
 <script>
@@ -49,11 +112,9 @@ const email = params.get("email");
 const handle = params.get("handle");
 
 if (!email) {
-  alert("Email manquant");
   window.location.href = "/signup.html";
 }
 
-// 🔥 Encode email + handle
 const statePayload = btoa(JSON.stringify({
   email: email,
   handle: handle || ""
@@ -69,3 +130,6 @@ const stravaUrl =
 
 document.getElementById("stravaLink").href = stravaUrl;
 </script>
+
+</body>
+</html>
