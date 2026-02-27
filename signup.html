@@ -157,19 +157,29 @@ const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJ
 document.getElementById("signupForm").addEventListener("submit", async function(e){
   e.preventDefault();
 
+  // 1️⃣ On récupère l'email une seule fois
+  const emailValue = document.getElementById("email").value.trim();
+
   const payload = new URLSearchParams({
-    name: document.getElementById("name").value,
-    handle: document.getElementById("handle").value,
-    email: document.getElementById("email").value,
+    name: document.getElementById("name").value.trim(),
+    handle: document.getElementById("handle").value.trim(),
+    email: emailValue,
     rule: document.getElementById("rule").value,
     created_at: new Date().toISOString()
   });
 
-  await fetch(ENDPOINT_URL,{method:"POST",body:payload,mode:"no-cors"});
+  try {
+    await fetch(ENDPOINT_URL,{
+      method:"POST",
+      body:payload,
+      mode:"no-cors"
+    });
 
-  window.location.href="/connect.html";
+    // 2️⃣ Redirection AVEC email
+    window.location.href = "/connect.html?email=" + encodeURIComponent(emailValue);
+
+  } catch(err) {
+    alert("Erreur lors de l'inscription.");
+  }
 });
 </script>
-
-</body>
-</html>
