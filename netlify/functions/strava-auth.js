@@ -3,6 +3,7 @@ exports.handler = async (event) => {
     const qp = event.queryStringParameters || {};
     const code = qp.code;
     const error = qp.error;
+    const email = qp.state; // 🔥 IMPORTANT
 
     if (error) {
       return { statusCode: 400, body: `Strava error: ${error}` };
@@ -11,7 +12,14 @@ exports.handler = async (event) => {
     if (!code) {
       return {
         statusCode: 200,
-        body: "strava-auth live. Missing ?code=... (open via the Strava authorize link).",
+        body: "strava-auth live. Missing ?code=...",
+      };
+    }
+
+    if (!email) {
+      return {
+        statusCode: 400,
+        body: "Missing email in state parameter.",
       };
     }
 
@@ -21,11 +29,11 @@ exports.handler = async (event) => {
     if (!client_id || !client_secret) {
       return {
         statusCode: 500,
-        body: "Missing STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET in Netlify env vars.",
+        body: "Missing STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET.",
       };
     }
 
-    // 1) Exchange code -> tokens (Strava)
+    // 🔥 1) Exchange code → tokens
     const res = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -42,31 +50,23 @@ exports.handler = async (event) => {
     if (!res.ok || data?.errors) {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: "Token exchange failed", data }, null, 2),
       };
     }
 
-    // 2) Save refresh_token to Google Sheets (Apps Script)
+    // 🔥 2) Save to Google Sheets (with email!)
     const gsUrl = process.env.GS_WEBAPP_URL;
     const writeKey = process.env.UBIQUE_WRITE_KEY;
-
-    if (!gsUrl || !writeKey) {
-      return {
-        statusCode: 500,
-        body: "Missing GS_WEBAPP_URL / UBIQUE_WRITE_KEY in Netlify env vars.",
-      };
-    }
 
     const saveRes = await fetch(gsUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         key: writeKey,
+        email: email, // 🔥 NOW LINKED
         athlete_id: data.athlete?.id,
         refresh_token: data.refresh_token,
         expires_at: data.expires_at,
-        scope: qp.scope || "",
         updated_at: new Date().toISOString(),
       }),
     });
@@ -76,7 +76,6 @@ exports.handler = async (event) => {
     if (!saveRes.ok || saveJson?.ok !== true) {
       return {
         statusCode: 500,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           { message: "Failed saving to Google Sheets", saveJson },
           null,
@@ -85,21 +84,21 @@ exports.handler = async (event) => {
       };
     }
 
-    // 3) Return success (don’t leak tokens in production later)
+    // 🔥 3) Success
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
         {
           ok: true,
+          email: email,
           athlete_id: data.athlete?.id,
-          saved_to_sheet: true,
-          expires_at: data.expires_at,
+          linked: true,
         },
         null,
         2
       ),
     };
+
   } catch (e) {
     return { statusCode: 500, body: `Server error: ${e?.message || e}` };
   }
