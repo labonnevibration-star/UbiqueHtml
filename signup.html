@@ -175,8 +175,9 @@ document.getElementById("signupForm").addEventListener("submit", async function(
     });
 
     // 🔥 Redirection avec email
-    window.location.href = "/connect.html?email=" + encodeURIComponent(emailValue);
-
+    window.location.href =
+  "/connect.html?email=" + encodeURIComponent(emailValue) +
+  "&handle=" + encodeURIComponent(document.getElementById("handle").value);
   } catch(err) {
     alert("Erreur lors de l'inscription.");
   }
