@@ -2,40 +2,42 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>UBIQUE Dashboard</title>
+<title>UBIQUE — Weekly Performance</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
   margin:0;
-  background:#0b0f14;
+  background:#0f141a;
   color:white;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   padding:20px;
 }
 .container{
-  max-width:1100px;
+  max-width:1200px;
   margin:auto;
 }
 h1{
-  font-size:22px;
-  margin-bottom:20px;
+  font-size:24px;
+  margin-bottom:25px;
 }
 button{
-  padding:14px 20px;
-  background:#f04e23;
+  padding:14px 22px;
+  background:linear-gradient(90deg,#ff512f,#dd2476);
   border:none;
   border-radius:8px;
   color:white;
   font-weight:700;
   cursor:pointer;
-  margin-bottom:30px;
+  margin-bottom:35px;
 }
-button:hover{ background:#ff6238; }
+button:hover{
+  opacity:0.9;
+}
 canvas{
-  background:#161b22;
-  border-radius:12px;
+  background:#151b22;
+  border-radius:14px;
   padding:20px;
 }
 </style>
@@ -44,7 +46,7 @@ canvas{
 <body>
 
 <div class="container">
-  <h1>🔥 UBIQUE — 7 derniers jours</h1>
+  <h1>🔥 UBIQUE — Performance Hebdomadaire</h1>
   <button onclick="runSync()">Sync & Afficher</button>
   <canvas id="chart"></canvas>
 </div>
@@ -53,7 +55,6 @@ canvas{
 
 let chartInstance = null;
 
-// 🔥 Affiche total au bout des barres
 const totalPlugin = {
   id:'totalPlugin',
   afterDatasetsDraw(chart){
@@ -65,15 +66,16 @@ const totalPlugin = {
     chart.data.labels.forEach((label,i)=>{
       let total=0;
       chart.data.datasets.forEach(ds=>{
-        total += ds.data[i] || 0;
+        const val = ds.realData[i] || 0;
+        total += val;
       });
 
       const meta = chart.getDatasetMeta(0);
       if(meta.data[i]){
         ctx.fillText(
           total.toFixed(1)+" km",
-          meta.data[i].x + 10,
-          meta.data[i].y + 4
+          meta.data[i].x - 15,
+          meta.data[i].y - 10
         );
       }
     });
@@ -84,17 +86,10 @@ const totalPlugin = {
 
 async function runSync(){
 
-  // Lance sync Netlify
   await fetch("/.netlify/functions/sync-activities");
 
-  // Récupère stats
   const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
   const data = await res.json();
-
-  if(!data.stats){
-    alert("Erreur récupération stats");
-    return;
-  }
 
   buildChart(data.stats);
 }
@@ -106,14 +101,8 @@ function buildChart(stats){
   }
 
   const ctx = document.getElementById("chart").getContext("2d");
-
   const athletes = Object.keys(stats);
-  if(athletes.length === 0){
-    alert("Aucune donnée");
-    return;
-  }
 
-  // 🔥 Construire 7 derniers jours
   const today = new Date();
   const days=[];
   for(let i=6;i>=0;i--){
@@ -123,30 +112,39 @@ function buildChart(stats){
   }
 
   const colors=[
-    "#f04e23",
-    "#ff7a45",
-    "#ff9b63",
-    "#ffb580",
-    "#ffc89c",
-    "#ffd8b5",
-    "#ffe6cc"
+    "#ff512f",
+    "#ff6a3d",
+    "#ff814a",
+    "#ff9658",
+    "#ffaa66",
+    "#ffbd75",
+    "#ffd184"
   ];
 
   const datasets = days.map((day,index)=>{
 
+    const realData=[];
+    const displayData=[];
+    const bgColors=[];
+
+    athletes.forEach(a=>{
+      const val = stats[a][day] || 0;
+      realData.push(val);
+
+      if(val===0){
+        displayData.push(1); // segment visible
+        bgColors.push("#2f3640");
+      }else{
+        displayData.push(Number(val.toFixed(2)));
+        bgColors.push(colors[index]);
+      }
+    });
+
     return {
       label:day,
-      data: athletes.map(a=>{
-        const val = stats[a][day];
-        if(!val || val===0){
-          return 0.2; // segment visible
-        }
-        return Number(val.toFixed(2));
-      }),
-      backgroundColor: athletes.map(a=>{
-        const val = stats[a][day];
-        return (!val || val===0) ? "#2a2f36" : colors[index];
-      })
+      data:displayData,
+      realData:realData,
+      backgroundColor:bgColors
     };
   });
 
@@ -157,17 +155,17 @@ function buildChart(stats){
       datasets:datasets
     },
     options:{
-      indexAxis:"y",
       responsive:true,
       plugins:{
         legend:{ labels:{ color:"white" }},
         tooltip:{
           callbacks:{
             label:function(context){
-              if(context.raw===0.2){
-                return "KM non fait";
+              const realVal = context.dataset.realData[context.dataIndex];
+              if(realVal===0){
+                return "Objectif non atteint";
               }
-              return context.raw+" km";
+              return realVal.toFixed(2)+" km";
             }
           }
         }
@@ -175,20 +173,20 @@ function buildChart(stats){
       scales:{
         x:{
           stacked:true,
-          beginAtZero:true,
           ticks:{color:"white"},
           title:{
             display:true,
-            text:"Kilomètres cumulés",
+            text:"Athlètes",
             color:"white"
           }
         },
         y:{
           stacked:true,
+          beginAtZero:true,
           ticks:{color:"white"},
           title:{
             display:true,
-            text:"Athlètes",
+            text:"Kilomètres cumulés",
             color:"white"
           }
         }
