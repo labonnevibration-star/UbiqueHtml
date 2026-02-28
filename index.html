@@ -6,8 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-*{box-sizing:border-box}
-
 body{
   margin:0;
   height:100vh;
@@ -21,19 +19,12 @@ body{
 
 .card{
   background:#161b22;
-  padding:50px 40px;
+  padding:50px;
   border-radius:20px;
   width:100%;
   max-width:420px;
   text-align:center;
   box-shadow:0 30px 60px rgba(0,0,0,.6);
-}
-
-.logo{
-  font-size:28px;
-  font-weight:800;
-  margin-bottom:30px;
-  letter-spacing:1px;
 }
 
 input{
@@ -46,7 +37,6 @@ input{
   font-size:16px;
   margin-bottom:20px;
   text-align:center;
-  outline:none;
 }
 
 button{
@@ -57,39 +47,8 @@ button{
   font-size:16px;
   font-weight:700;
   cursor:pointer;
-  transition:0.25s ease;
-}
-
-.primary{
   background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
-}
-
-.secondary{
-  background:#2f3640;
-  color:white;
-}
-
-.status{
-  font-size:14px;
-  margin-bottom:18px;
-  color:#9ca3af;
-  min-height:18px;
-}
-
-.loader{
-  width:18px;
-  height:18px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-top:2px solid white;
-  border-radius:50%;
-  animation:spin 0.7s linear infinite;
-  display:inline-block;
-}
-
-@keyframes spin{
-  0%{transform:rotate(0deg)}
-  100%{transform:rotate(360deg)}
 }
 </style>
 </head>
@@ -97,120 +56,14 @@ button{
 <body>
 
 <div class="card">
-
-  <div class="logo">🔥 UBIQUE</div>
-
+  <h2>🔥 UBIQUE</h2>
   <input type="email" id="email" placeholder="Ton email">
-
-  <div id="status" class="status"></div>
-
-  <button id="actionBtn" class="primary" onclick="handleAction()">
-    Continuer
-  </button>
-
+  <button onclick="connectStrava()">Se connecter à Strava</button>
 </div>
 
 <script>
-
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-
-let isRegistered = false;
-let loading = false;
-
-const emailInput = document.getElementById("email");
-const statusText = document.getElementById("status");
-const actionBtn = document.getElementById("actionBtn");
-
-document.addEventListener("DOMContentLoaded", ()=>{
-  const saved = localStorage.getItem("ubique_email");
-  if(saved){
-    emailInput.value = saved;
-    checkRegistration(saved);
-  }
-});
-
-emailInput.addEventListener("blur", ()=>{
-  const email = emailInput.value.trim();
-  if(email){
-    checkRegistration(email);
-  }
-});
-
-async function checkRegistration(email){
-
-  setLoading(true);
-  isRegistered = false;
-  statusText.textContent = "Vérification...";
-
-  try{
-
-    const res = await fetch(GS_URL + "?mode=getAthletes");
-    const data = await res.json();
-    const athletes = Array.isArray(data.athletes) ? data.athletes : [];
-
-    const emailClean = email.toLowerCase().trim();
-
-    let match = null;
-
-    for(const a of athletes){
-
-      if(!a.email) continue;
-
-      const sheetEmail = String(a.email).toLowerCase().trim();
-
-      if(sheetEmail === emailClean){
-        match = a;
-        break;
-      }
-    }
-
-    if(!match){
-      showNotConnected();
-      setLoading(false);
-      return;
-    }
-
-    const token = (match.refresh_token || "").toString().trim();
-    const athleteId = match.athlete_id;
-
-    const valid =
-      token &&
-      token.length > 30 &&
-      token !== "null" &&
-      token !== "undefined" &&
-      athleteId &&
-      !isNaN(Number(athleteId));
-
-    if(valid){
-      isRegistered = true;
-      statusText.textContent = "Connecté à Strava ✅";
-      actionBtn.textContent = "Accéder au Dashboard";
-      actionBtn.className = "primary";
-    }else{
-      showNotConnected();
-    }
-
-  }catch(e){
-    console.error(e);
-    statusText.textContent = "Erreur serveur";
-  }
-
-  setLoading(false);
-}
-
-function showNotConnected(){
-  isRegistered = false;
-  statusText.textContent = "Non connecté à Strava";
-  actionBtn.textContent = "Se connecter à Strava";
-  actionBtn.className = "secondary";
-}
-
-function handleAction(){
-
-  if(loading) return;
-
-  const email = emailInput.value.trim();
-
+function connectStrava(){
+  const email = document.getElementById("email").value.trim();
   if(!email){
     alert("Entre ton email");
     return;
@@ -218,33 +71,10 @@ function handleAction(){
 
   localStorage.setItem("ubique_email", email);
 
-  if(isRegistered){
-    window.location.href = "/dashboard.html";
-  }else{
-    window.location.href = "/signup.html?email=" + encodeURIComponent(email);
-  }
+  window.location.href =
+    "/.netlify/functions/strava-auth?email=" +
+    encodeURIComponent(email);
 }
-
-function setLoading(state){
-
-  loading = state;
-
-  if(state){
-    actionBtn.innerHTML = '<span class="loader"></span>';
-    actionBtn.disabled = true;
-  }else{
-    actionBtn.disabled = false;
-
-    if(isRegistered){
-      actionBtn.textContent = "Accéder au Dashboard";
-      actionBtn.className = "primary";
-    }else{
-      actionBtn.textContent = "Se connecter à Strava";
-      actionBtn.className = "secondary";
-    }
-  }
-}
-
 </script>
 
 </body>
