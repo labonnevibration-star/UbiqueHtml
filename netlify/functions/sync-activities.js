@@ -43,7 +43,7 @@ exports.handler = async () => {
 
       // 🔥 Only recent activities (limit for speed)
       const activitiesRes = await fetch(
-        "https://www.strava.com/api/v3/athlete/activities?per_page=5",
+        "https://www.strava.com/api/v3/athlete/activities?per_page=20",
         { headers: { Authorization: `Bearer ${access_token}` } }
       );
 
