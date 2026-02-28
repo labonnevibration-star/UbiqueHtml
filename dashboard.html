@@ -2,9 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>UBIQUE — Live Dashboard</title>
+<title>UBIQUE — Segmented Weekly</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -13,39 +12,29 @@ body{
   background:#0d1117;
   color:#e6edf3;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  padding:20px;
+  padding:30px;
 }
 .container{
   max-width:1100px;
   margin:auto;
 }
-.top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:20px;
+h1{
+  margin-bottom:25px;
+}
+canvas{
+  background:#161b22;
+  border-radius:14px;
+  padding:20px;
 }
 button{
-  padding:12px 18px;
+  padding:12px 20px;
   background:linear-gradient(90deg,#ff512f,#dd2476);
   border:none;
   border-radius:10px;
   color:white;
   font-weight:800;
   cursor:pointer;
-}
-.card{
-  background:#161b22;
-  padding:20px;
-  border-radius:14px;
-}
-.error{
-  color:#ff4d4d;
-  margin-top:15px;
-}
-canvas{
-  width:100% !important;
-  height:420px !important;
+  margin-bottom:20px;
 }
 </style>
 </head>
@@ -54,15 +43,9 @@ canvas{
 
 <div class="container">
 
-  <div class="top">
-    <h2>🔥 Weekly Performance</h2>
-    <button onclick="loadData()">Sync</button>
-  </div>
-
-  <div class="card">
-    <canvas id="chart"></canvas>
-    <div id="error" class="error"></div>
-  </div>
+<h1>🔥 Weekly Performance</h1>
+<button onclick="loadData()">Sync</button>
+<canvas id="chart" height="450"></canvas>
 
 </div>
 
@@ -70,29 +53,6 @@ canvas{
 
 const OBJECTIF = 1;
 let chart;
-
-function fallbackData(){
-  return {
-    "Lolo":{
-      "2026-02-22":1,
-      "2026-02-23":0.4,
-      "2026-02-24":1,
-      "2026-02-25":0,
-      "2026-02-26":1,
-      "2026-02-27":1,
-      "2026-02-28":0.8
-    },
-    "Gabcar":{
-      "2026-02-22":1,
-      "2026-02-23":1,
-      "2026-02-24":1,
-      "2026-02-25":1,
-      "2026-02-26":1,
-      "2026-02-27":1,
-      "2026-02-28":1
-    }
-  };
-}
 
 function last7Days(){
   const t=new Date();
@@ -107,22 +67,18 @@ function last7Days(){
 
 async function loadData(){
 
-  document.getElementById("error").innerText="";
-
   let stats;
 
   try{
-
     const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
     const data = await res.json();
-
-    if(!data.stats) throw new Error("Stats invalides");
-
     stats = data.stats;
-
   }catch(e){
-    document.getElementById("error").innerText="Backend non accessible — mode demo actif";
-    stats = fallbackData();
+    // fallback
+    stats={
+      "Lolo":{"2026-02-22":1,"2026-02-23":0,"2026-02-24":0.5,"2026-02-25":1,"2026-02-26":1,"2026-02-27":0,"2026-02-28":1},
+      "Gabcar":{"2026-02-22":1,"2026-02-23":1,"2026-02-24":1,"2026-02-25":1,"2026-02-26":1,"2026-02-27":1,"2026-02-28":1}
+    };
   }
 
   render(stats);
@@ -130,81 +86,97 @@ async function loadData(){
 
 function render(stats){
 
-  if(!document.getElementById("chart")){
-    document.getElementById("error").innerText="Canvas introuvable";
-    return;
-  }
-
   const ctx = document.getElementById("chart").getContext("2d");
-
   if(chart) chart.destroy();
 
   const days = last7Days();
-  const labels = days.map(d=>d.slice(5));
   const athletes = Object.keys(stats);
 
-  const datasets=[];
-
-  athletes.forEach((athlete,i)=>{
-
-    const done=[];
-    const missing=[];
-
-    days.forEach(day=>{
-      const km = stats[athlete][day] || 0;
-      const d = Math.min(km,OBJECTIF);
-      done.push(d);
-      missing.push(OBJECTIF-d);
-    });
-
-    datasets.push({
-      label:athlete+" ✓",
-      data:done,
-      backgroundColor:"linear-gradient(90deg,#ff512f,#dd2476)",
-      backgroundColor:(ctx)=>{
-        const g = ctx.chart.ctx.createLinearGradient(0,0,0,400);
-        g.addColorStop(0,"#ff512f");
-        g.addColorStop(1,"#dd2476");
-        return g;
-      },
-      stack:"a"+i
-    });
-
-    datasets.push({
-      label:athlete+" ✗",
-      data:missing,
-      backgroundColor:"#000",
-      stack:"a"+i
-    });
-
+  const totals = athletes.map(a=>{
+    return days.reduce((sum,d)=> sum + (stats[a][d]||0),0);
   });
+
+  const gradient = ctx.createLinearGradient(0,0,0,400);
+  gradient.addColorStop(0,"#ff512f");
+  gradient.addColorStop(1,"#dd2476");
+
+  const segmentPlugin = {
+    id:"segments",
+    afterDatasetsDraw(chart){
+
+      const {ctx, scales} = chart;
+      ctx.save();
+      ctx.font="11px sans-serif";
+      ctx.textAlign="center";
+
+      athletes.forEach((athlete,i)=>{
+
+        let cumulative=0;
+        const x = scales.x.getPixelForValue(i);
+        const bar = chart.getDatasetMeta(0).data[i];
+        const barWidth = bar.width;
+        const baseY = scales.y.getPixelForValue(0);
+
+        days.forEach(day=>{
+
+          const km = stats[athlete][day]||0;
+          const height = km;
+          const yStart = scales.y.getPixelForValue(cumulative);
+          const yEnd = scales.y.getPixelForValue(cumulative+km);
+
+          const segmentHeight = yStart - yEnd;
+
+          ctx.fillStyle = km>0 ? gradient : "#000";
+          ctx.fillRect(
+            x - barWidth/2,
+            yEnd,
+            barWidth,
+            segmentHeight
+          );
+
+          // date text
+          ctx.fillStyle="white";
+          ctx.fillText(
+            day.slice(5),
+            x,
+            yEnd + segmentHeight/2
+          );
+
+          cumulative += km;
+        });
+
+      });
+
+      ctx.restore();
+    }
+  };
 
   chart = new Chart(ctx,{
     type:"bar",
     data:{
-      labels:labels,
-      datasets:datasets
+      labels:athletes,
+      datasets:[{
+        data:totals,
+        backgroundColor:"transparent"
+      }]
     },
     options:{
       responsive:true,
-      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
       scales:{
         x:{ticks:{color:"#c9d1d9"}},
         y:{
           beginAtZero:true,
-          max:OBJECTIF,
           ticks:{color:"#8b949e"}
         }
-      },
-      plugins:{
-        legend:{labels:{color:"#c9d1d9"}}
       }
-    }
+    },
+    plugins:[segmentPlugin]
   });
 
 }
 
-window.onload = loadData;
+window.onload=loadData;
 
 </script>
 
