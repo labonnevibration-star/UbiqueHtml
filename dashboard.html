@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>UBIQUE — Weekly Performance</title>
+<title>UBIQUE — Weekly Timeline</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -19,12 +19,12 @@ body{
   margin:auto;
 }
 h1{
-  font-size:24px;
+  font-size:22px;
   margin-bottom:25px;
 }
 button{
   padding:14px 22px;
-  background:linear-gradient(90deg,#ff512f,#ff9966);
+  background:linear-gradient(90deg,#ff512f,#dd2476);
   border:none;
   border-radius:8px;
   color:white;
@@ -32,14 +32,11 @@ button{
   cursor:pointer;
   margin-bottom:35px;
 }
-button:hover{ opacity:0.9; }
+button:hover{opacity:0.9;}
 canvas{
   background:#161b22;
   border-radius:14px;
   padding:20px;
-}
-@media(max-width:768px){
-  h1{font-size:18px;}
 }
 </style>
 </head>
@@ -47,66 +44,31 @@ canvas{
 <body>
 
 <div class="container">
-  <h1>🔥 UBIQUE — Performance Hebdomadaire</h1>
+  <h1>🔥 UBIQUE — Timeline Semaine</h1>
   <button onclick="runSync()">Sync & Afficher</button>
   <canvas id="chart"></canvas>
 </div>
 
 <script>
 
-let chartInstance = null;
-
-const totalPlugin = {
-  id:'totalPlugin',
-  afterDatasetsDraw(chart){
-    const {ctx} = chart;
-    ctx.save();
-    ctx.fillStyle="white";
-    ctx.font="bold 13px sans-serif";
-
-    chart.data.labels.forEach((label,i)=>{
-      let total=0;
-      chart.data.datasets.forEach(ds=>{
-        total += ds.realData[i] || 0;
-      });
-
-      const meta = chart.getDatasetMeta(0);
-      const bar = meta.data[i];
-
-      if(bar){
-        ctx.textAlign="center";
-        ctx.fillText(
-          total.toFixed(1)+" km",
-          bar.x,
-          bar.y - 8
-        );
-      }
-    });
-
-    ctx.restore();
-  }
-};
+let chartInstance=null;
 
 async function runSync(){
-
   await fetch("/.netlify/functions/sync-activities");
 
   const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
   const data = await res.json();
-
   buildChart(data.stats);
 }
 
 function buildChart(stats){
 
-  if(chartInstance){
-    chartInstance.destroy();
-  }
+  if(chartInstance) chartInstance.destroy();
 
-  const ctx = document.getElementById("chart").getContext("2d");
-  const athletes = Object.keys(stats);
+  const ctx=document.getElementById("chart").getContext("2d");
+  const athletes=Object.keys(stats);
 
-  const today = new Date();
+  const today=new Date();
   const days=[];
   for(let i=6;i>=0;i--){
     const d=new Date();
@@ -114,92 +76,108 @@ function buildChart(stats){
     days.push(d.toISOString().slice(0,10));
   }
 
-  const colors=[
-    "#ff512f",
-    "#ff6f3c",
-    "#ff8b49",
-    "#ffa256",
-    "#ffb864",
-    "#ffc672",
-    "#ffd480"
-  ];
+  const gradient = ctx.createLinearGradient(0,0,0,400);
+  gradient.addColorStop(0,"#ff512f");
+  gradient.addColorStop(1,"#dd2476");
 
-  const datasets = days.map((day,index)=>{
+  const datasets = athletes.map((athlete)=>{
 
-    const realData=[];
-    const displayData=[];
-    const bgColors=[];
+    let cumulative=0;
+    const segments=[];
 
-    athletes.forEach(a=>{
-      const val = stats[a][day] || 0;
-      realData.push(val);
-
-      if(val===0){
-        displayData.push(0.5); // segment discret
-        bgColors.push("#2b313a");
-      }else{
-        displayData.push(Number(val.toFixed(2)));
-        bgColors.push(colors[index]);
-      }
+    days.forEach(day=>{
+      const km=stats[athlete][day]||0;
+      segments.push({
+        start:cumulative,
+        end:cumulative+km,
+        date:day,
+        km:km
+      });
+      cumulative+=km;
     });
 
     return {
-      label:day,
-      data:displayData,
-      realData:realData,
-      backgroundColor:bgColors
+      label:athlete,
+      data:[cumulative],
+      segments:segments,
+      backgroundColor:gradient
     };
   });
 
-  chartInstance = new Chart(ctx,{
+  const customPlugin={
+    id:'customSegments',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart;
+      ctx.save();
+      ctx.font="12px sans-serif";
+      ctx.fillStyle="white";
+
+      chart.data.datasets.forEach((dataset,i)=>{
+        const meta=chart.getDatasetMeta(i);
+        const bar=meta.data[0];
+
+        if(!bar) return;
+
+        dataset.segments.forEach(seg=>{
+          if(seg.km===0) return;
+
+          const xStart=bar.x - bar.width/2 + (seg.start/dataset.data[0])*bar.width;
+          const xEnd=bar.x - bar.width/2 + (seg.end/dataset.data[0])*bar.width;
+          const y=bar.y;
+
+          // Crochet début
+          ctx.beginPath();
+          ctx.moveTo(xStart,y-10);
+          ctx.lineTo(xStart,y-20);
+          ctx.strokeStyle="white";
+          ctx.stroke();
+
+          // Crochet fin
+          ctx.beginPath();
+          ctx.moveTo(xEnd,y-10);
+          ctx.lineTo(xEnd,y-20);
+          ctx.stroke();
+
+          // Date au-dessus
+          ctx.textAlign="center";
+          ctx.fillText(
+            seg.date.slice(5),
+            (xStart+xEnd)/2,
+            y-25
+          );
+        });
+
+      });
+
+      ctx.restore();
+    }
+  };
+
+  chartInstance=new Chart(ctx,{
     type:"bar",
     data:{
       labels:athletes,
       datasets:datasets
     },
     options:{
+      indexAxis:'y',
       responsive:true,
       plugins:{
-        legend:{ labels:{ color:"white" }},
-        tooltip:{
-          callbacks:{
-            label:function(context){
-              const realVal = context.dataset.realData[context.dataIndex];
-              if(realVal===0){
-                return "Objectif non atteint";
-              }
-              return realVal.toFixed(2)+" km";
-            }
-          }
-        }
+        legend:{display:false}
       },
       scales:{
         x:{
-          stacked:true,
+          beginAtZero:true,
           ticks:{color:"white"}
         },
         y:{
-          stacked:true,
-          beginAtZero:true,
-          ticks:{color:"white"},
-          suggestedMax: calculateSuggestedMax(stats)
+          ticks:{color:"white"}
         }
       }
     },
-    plugins:[totalPlugin]
-  });
-}
-
-function calculateSuggestedMax(stats){
-  let maxTotal = 0;
-
-  Object.values(stats).forEach(days=>{
-    let total=0;
-    Object.values(days).forEach(val=> total+=val);
-    if(total>maxTotal) maxTotal=total;
+    plugins:[customPlugin]
   });
 
-  return Math.ceil(maxTotal * 1.2);
 }
 
 </script>
