@@ -6,6 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --accent1:#ff512f;
+  --accent2:#dd2476;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+}
+
+*{box-sizing:border-box}
+
 body{
   margin:0;
   height:100vh;
@@ -13,76 +24,177 @@ body{
   justify-content:center;
   align-items:center;
   background:linear-gradient(135deg,#0f172a,#111827);
-  font-family:system-ui;
-  color:white;
+  font-family:system-ui,-apple-system;
+  color:var(--text);
 }
+
 .card{
-  background:#1e293b;
-  padding:50px;
-  border-radius:20px;
   width:100%;
-  max-width:420px;
+  max-width:460px;
+  padding:55px 45px;
+  border-radius:22px;
+  background:var(--card);
+  box-shadow:0 40px 80px rgba(0,0,0,.6);
   text-align:center;
-  box-shadow:0 30px 60px rgba(0,0,0,.5);
+  animation:fadeIn .5s ease;
 }
-h2{
-  margin-bottom:25px;
+
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
 }
+
+h1{
+  margin:0 0 35px 0;
+  font-size:26px;
+  letter-spacing:.5px;
+}
+
 input{
   width:100%;
-  padding:15px;
-  border-radius:12px;
+  padding:16px;
+  border-radius:14px;
   border:none;
   background:#0f172a;
   color:white;
   font-size:16px;
-  margin-bottom:20px;
   text-align:center;
+  outline:none;
+  margin-bottom:18px;
 }
+
+.status{
+  height:22px;
+  font-size:14px;
+  margin-bottom:25px;
+  color:var(--muted);
+  transition:.3s;
+}
+
 button{
   width:100%;
   padding:16px;
   border:none;
-  border-radius:12px;
-  font-size:16px;
+  border-radius:14px;
+  font-size:15px;
   font-weight:700;
   cursor:pointer;
-  background:linear-gradient(90deg,#ff512f,#dd2476);
-  color:white;
-  transition:0.2s;
+  transition:.25s;
+  margin-top:10px;
 }
+
+.primary{
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;
+}
+
+.secondary{
+  background:#2f3640;
+  color:white;
+}
+
 button:hover{
   transform:translateY(-2px);
+}
+
+.hidden{
+  display:none;
 }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>🔥 UBIQUE</h2>
+  <h1>🔥 UBIQUE</h1>
+
   <input type="email" id="email" placeholder="Ton email">
-  <button id="connectBtn">Connecter Strava</button>
+
+  <div id="status" class="status"></div>
+
+  <button id="btnDashboard" class="primary hidden">Accéder au Dashboard</button>
+  <button id="btnConnect" class="secondary hidden">Connecter Strava</button>
+  <button id="btnSignup" class="secondary hidden">Créer un compte</button>
 </div>
 
 <script>
 
-document.getElementById("connectBtn").addEventListener("click", ()=>{
+const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
-  const email = document.getElementById("email").value.trim();
+const emailInput = document.getElementById("email");
+const statusText = document.getElementById("status");
 
-  if(!email){
-    alert("Entre ton email");
-    return;
+const btnDashboard = document.getElementById("btnDashboard");
+const btnConnect = document.getElementById("btnConnect");
+const btnSignup = document.getElementById("btnSignup");
+
+function resetButtons(){
+  btnDashboard.classList.add("hidden");
+  btnConnect.classList.add("hidden");
+  btnSignup.classList.add("hidden");
+}
+
+emailInput.addEventListener("blur", async ()=>{
+
+  const email = emailInput.value.trim().toLowerCase();
+  if(!email) return;
+
+  resetButtons();
+  statusText.textContent = "Vérification...";
+
+  try{
+
+    const res = await fetch(GS_URL + "?mode=getAthletes");
+    const data = await res.json();
+
+    const athletes = Array.isArray(data.athletes) ? data.athletes : [];
+
+    const found = athletes.find(a =>
+      (a.email || "").toLowerCase().trim() === email
+    );
+
+    if(!found){
+      statusText.textContent = "Nouvel utilisateur";
+      btnSignup.classList.remove("hidden");
+      return;
+    }
+
+    const hasToken =
+      found.refresh_token &&
+      found.refresh_token.length > 30 &&
+      found.athlete_id;
+
+    if(hasToken){
+      statusText.textContent = "Compte connecté à Strava";
+      btnDashboard.classList.remove("hidden");
+    }else{
+      statusText.textContent = "Compte existant – connecter Strava";
+      btnConnect.classList.remove("hidden");
+    }
+
+  }catch(e){
+    statusText.textContent = "Erreur serveur";
   }
 
-  const clean = email.toLowerCase().trim();
+});
 
+btnDashboard.onclick = ()=>{
+  window.location.href = "/dashboard.html";
+};
+
+btnConnect.onclick = ()=>{
+  const email = emailInput.value.trim().toLowerCase();
   window.location.href =
     window.location.origin +
     "/.netlify/functions/strava-auth?email=" +
-    encodeURIComponent(clean);
+    encodeURIComponent(email);
+};
 
-});
+btnSignup.onclick = ()=>{
+  const email = emailInput.value.trim().toLowerCase();
+  window.location.href =
+    "/signup.html?email=" +
+    encodeURIComponent(email);
+};
 
 </script>
 
