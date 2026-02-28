@@ -57,7 +57,6 @@ button{
   font-size:16px;
   font-weight:700;
   cursor:pointer;
-  position:relative;
   transition:0.25s ease;
 }
 
@@ -122,7 +121,6 @@ const emailInput = document.getElementById("email");
 const statusText = document.getElementById("status");
 const actionBtn = document.getElementById("actionBtn");
 
-// 🔥 Auto-remplissage si déjà utilisé
 document.addEventListener("DOMContentLoaded", ()=>{
   const saved = localStorage.getItem("ubique_email");
   if(saved){
@@ -152,7 +150,7 @@ async function checkRegistration(email){
 
     const emailClean = email.toLowerCase().trim();
 
-    let athleteMatch = null;
+    let match = null;
 
     for(const a of athletes){
 
@@ -161,26 +159,29 @@ async function checkRegistration(email){
       const sheetEmail = String(a.email).toLowerCase().trim();
 
       if(sheetEmail === emailClean){
-        athleteMatch = a;
+        match = a;
         break;
       }
     }
 
-    if(!athleteMatch){
+    if(!match){
       showNotConnected();
       setLoading(false);
       return;
     }
 
-    const token = (athleteMatch.refresh_token || "").toString().trim();
+    const token = (match.refresh_token || "").toString().trim();
+    const athleteId = match.athlete_id;
 
-    const tokenValid =
+    const valid =
+      token &&
       token.length > 30 &&
       token !== "null" &&
       token !== "undefined" &&
-      token !== "";
+      athleteId &&
+      !isNaN(Number(athleteId));
 
-    if(tokenValid){
+    if(valid){
       isRegistered = true;
       statusText.textContent = "Connecté à Strava ✅";
       actionBtn.textContent = "Accéder au Dashboard";
