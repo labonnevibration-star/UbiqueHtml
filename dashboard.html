@@ -1,296 +1,138 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>UBIQUE — Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-  :root{
-    --bg:#0d1117;
-    --card:#161b22;
-    --text:#e6edf3;
-    --muted:#8b949e;
-    --grid:#21262d;
-    --missing:#05070a; /* noir visible */
-  }
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    padding:22px;
-  }
-  .container{ max-width:1100px; margin:auto; }
-  .top{
-    display:flex; gap:12px; flex-wrap:wrap;
-    justify-content:space-between; align-items:center;
-    margin-bottom:14px;
-  }
-  h1{ font-size:20px; margin:0; letter-spacing:.2px; }
-  .controls{
-    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-  }
-  .btn{
-    padding:12px 18px;
-    background:linear-gradient(90deg,#ff512f,#dd2476);
-    border:none; border-radius:10px;
-    color:#fff; font-weight:800;
-    cursor:pointer;
-    box-shadow:0 10px 26px rgba(221,36,118,.25);
-    transition:.15s ease;
-  }
-  .btn:hover{ transform:translateY(-1px); box-shadow:0 14px 30px rgba(221,36,118,.35); }
-  .btn:disabled{ opacity:.65; cursor:not-allowed; transform:none; }
-
-  select{
-    background:#0f141b;
-    border:1px solid #2a2f36;
-    color:var(--text);
-    padding:10px 12px;
-    border-radius:10px;
-    font-weight:700;
-    outline:none;
-  }
-
-  .card{
-    background:var(--card);
-    border-radius:16px;
-    padding:16px 16px 10px;
-    border:1px solid #20252c;
-  }
-
-  .kpis{
-    display:flex; gap:12px; flex-wrap:wrap;
-    margin:12px 0 14px;
-  }
-  .kpi{
-    flex:1 1 220px;
-    background:#0f141b;
-    border:1px solid #222832;
-    border-radius:14px;
-    padding:12px 14px;
-  }
-  .kpi .label{ color:var(--muted); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
-  .kpi .value{ font-size:20px; font-weight:900; margin-top:6px; }
-  .kpi .sub{ color:var(--muted); font-size:12px; margin-top:4px; }
-
-  canvas{ width:100% !important; height:420px !important; }
-  @media (max-width:700px){
-    canvas{ height:420px !important; }
-  }
-</style>
-</head>
-
-<body>
-<div class="container">
-
-  <div class="top">
-    <h1>🔥 UBIQUE — Semaine (barres / jour)</h1>
-    <div class="controls">
-      <select id="athleteSelect" aria-label="Choisir un athlète"></select>
-      <button class="btn" id="syncBtn" onclick="runSync()">Sync</button>
-    </div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi">
-      <div class="label">Total semaine</div>
-      <div class="value" id="kpiTotal">—</div>
-      <div class="sub" id="kpiSub">—</div>
-    </div>
-    <div class="kpi">
-      <div class="label">Objectif</div>
-      <div class="value" id="kpiGoal">—</div>
-      <div class="sub">Objectif/jour × 7</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <canvas id="chart"></canvas>
-  </div>
-
-</div>
-
 <script>
-let chartInstance = null;
 
-// ✅ Ajuste ici si tu veux 3km/jour plus tard
+let chartInstance = null;
 const OBJECTIF_JOUR = 1;
 const JOURS = 7;
 
-const GS_WEEKLY_STATS_URL =
-  "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats";
-
-let lastStats = null;
+const GS_URL =
+"https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats";
 
 function last7DaysISO(){
   const today = new Date();
   today.setHours(0,0,0,0);
   const days=[];
   for(let i=6;i>=0;i--){
-    const d = new Date(today);
+    const d=new Date(today);
     d.setDate(today.getDate()-i);
     days.push(d.toISOString().slice(0,10));
   }
   return days;
 }
 
-function fmtDay(iso){ // "2026-02-27" -> "02-27"
-  return iso.slice(5);
-}
-
-function setKpis(doneSum){
-  const goal = OBJECTIF_JOUR * JOURS;
-  document.getElementById("kpiGoal").textContent = goal.toFixed(0) + " km";
-  document.getElementById("kpiTotal").textContent = doneSum.toFixed(2) + " km";
-  const pct = Math.min(100, (doneSum/goal)*100);
-  document.getElementById("kpiSub").textContent = pct.toFixed(0) + "% de l’objectif";
-}
-
-function fillAthleteSelect(stats){
-  const select = document.getElementById("athleteSelect");
-  const names = Object.keys(stats || {});
-  select.innerHTML = "";
-  names.forEach((n,i)=>{
-    const opt = document.createElement("option");
-    opt.value = n;
-    opt.textContent = n;
-    if(i===0) opt.selected = true;
-    select.appendChild(opt);
-  });
-
-  select.onchange = () => {
-    if(lastStats) renderForAthlete(select.value, lastStats);
-  };
-}
-
 async function runSync(){
-  const btn = document.getElementById("syncBtn");
-  btn.disabled = true;
-  btn.textContent = "Sync…";
 
-  try{
-    // 1) Sync côté Netlify (récupère Strava -> Sheets)
-    await fetch("/.netlify/functions/sync-activities");
+  await fetch("/.netlify/functions/sync-activities");
 
-    // 2) Récupère stats semaine depuis Apps Script
-    const res = await fetch(GS_WEEKLY_STATS_URL);
-    const data = await res.json();
+  const res = await fetch(GS_URL);
+  const data = await res.json();
 
-    if(!data || !data.stats){
-      alert("Erreur: stats introuvables");
-      return;
-    }
-
-    lastStats = data.stats;
-
-    // Remplit dropdown si vide
-    fillAthleteSelect(lastStats);
-
-    // Render athlète sélectionné
-    const selected = document.getElementById("athleteSelect").value;
-    renderForAthlete(selected, lastStats);
-
-  }catch(e){
-    console.error(e);
-    alert("Erreur Sync / Stats. Regarde la console.");
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Sync";
+  if(!data.stats){
+    alert("Erreur récupération stats");
+    return;
   }
+
+  buildChart(data.stats);
 }
 
-function renderForAthlete(athleteName, stats){
-  const ctx = document.getElementById("chart").getContext("2d");
-  const days = last7DaysISO();
-
-  // km par jour (si date absente => 0)
-  const kmRaw = days.map(d => Number(stats?.[athleteName]?.[d] || 0));
-
-  // Done = min(km, objectif)
-  const done = kmRaw.map(v => Math.max(0, Math.min(OBJECTIF_JOUR, v)));
-  // Missing = objectif - done
-  const missing = done.map(v => Number((OBJECTIF_JOUR - v).toFixed(4)));
-
-  const doneSum = done.reduce((a,b)=>a+b,0);
-  setKpis(doneSum);
+function buildChart(stats){
 
   if(chartInstance) chartInstance.destroy();
 
-  // Gradient "comme le bouton Sync"
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  const athletes = Object.keys(stats);
+  const days = last7DaysISO();
+  const labels = days.map(d=>d.slice(5));
+
   const gradient = ctx.createLinearGradient(0,0,0,420);
   gradient.addColorStop(0,"#ff512f");
   gradient.addColorStop(1,"#dd2476");
 
+  const datasets = [];
+
+  athletes.forEach((athlete,index)=>{
+
+    const doneData = [];
+    const missingData = [];
+
+    days.forEach(day=>{
+
+      const km = stats[athlete][day] || 0;
+
+      const done = Math.min(km, OBJECTIF_JOUR);
+      const missing = OBJECTIF_JOUR - done;
+
+      doneData.push(done);
+      missingData.push(missing);
+    });
+
+    datasets.push({
+      label: athlete + " ✓",
+      data: doneData,
+      backgroundColor: gradient,
+      stack: "athlete_"+index,
+      borderRadius: 6
+    });
+
+    datasets.push({
+      label: athlete + " ✗",
+      data: missingData,
+      backgroundColor: "#05070a",
+      stack: "athlete_"+index,
+      borderRadius: 6
+    });
+
+  });
+
   chartInstance = new Chart(ctx,{
     type:"bar",
     data:{
-      labels: days.map(fmtDay),
-      datasets:[
-        {
-          label:"KM faits",
-          data: done,
-          backgroundColor: gradient,
-          borderRadius: 8,
-          stack:"d"
-        },
-        {
-          label:"KM manquants",
-          data: missing,
-          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--missing').trim(),
-          borderRadius: 8,
-          stack:"d"
-        }
-      ]
+      labels: labels,
+      datasets: datasets
     },
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      animation:{ duration:650, easing:"easeOutQuart" },
+      animation:{
+        duration:700
+      },
       plugins:{
         legend:{
-          labels:{ color:"#c9d1d9", font:{weight:"700"} }
+          labels:{
+            color:"#c9d1d9",
+            font:{weight:"600"}
+          }
         },
         tooltip:{
-          backgroundColor:"#0b0f14",
-          borderColor:"#ff512f",
-          borderWidth:1,
-          titleColor:"#fff",
-          bodyColor:"#fff",
           callbacks:{
-            label:(ctx)=>{
-              const dayIndex = ctx.dataIndex;
-              const real = kmRaw[dayIndex];
-              if(ctx.dataset.label === "KM manquants"){
-                if(missing[dayIndex] > 0){
-                  return `Non fait: ${missing[dayIndex].toFixed(2)} km (fait: ${real.toFixed(2)} km)`;
+            label:function(ctx){
+              const value = ctx.raw;
+              if(ctx.dataset.label.includes("✗")){
+                if(value>0){
+                  return "Non fait: "+value.toFixed(2)+" km";
                 }
-                return `Objectif atteint`;
+                return "Objectif atteint";
               }
-              return `Fait: ${real.toFixed(2)} km`;
+              return "Fait: "+value.toFixed(2)+" km";
             }
           }
         }
       },
       scales:{
         x:{
-          stacked:true,
-          ticks:{ color:"#c9d1d9", font:{weight:"700"} },
-          grid:{ color:"#21262d" }
+          stacked:false,
+          ticks:{color:"#c9d1d9"},
+          grid:{color:"#21262d"}
         },
         y:{
-          stacked:true,
           beginAtZero:true,
-          suggestedMax: OBJECTIF_JOUR,
-          ticks:{ color:"#8b949e" },
-          grid:{ color:"#21262d" },
+          max:OBJECTIF_JOUR,
+          ticks:{color:"#8b949e"},
+          grid:{color:"#21262d"},
           title:{
             display:true,
-            text:`KM / jour (objectif ${OBJECTIF_JOUR} km)`,
-            color:"#c9d1d9",
-            font:{weight:"700"}
+            text:"KM par jour (objectif "+OBJECTIF_JOUR+" km)",
+            color:"#c9d1d9"
           }
         }
       }
@@ -298,9 +140,6 @@ function renderForAthlete(athleteName, stats){
   });
 }
 
-// Auto-load
 window.onload = runSync;
-</script>
 
-</body>
-</html>
+</script>
