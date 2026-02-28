@@ -25,6 +25,9 @@ body{
   text-align:center;
   box-shadow:0 30px 60px rgba(0,0,0,.5);
 }
+h2{
+  margin-bottom:25px;
+}
 input{
   width:100%;
   padding:15px;
@@ -36,12 +39,6 @@ input{
   margin-bottom:20px;
   text-align:center;
 }
-.status{
-  font-size:14px;
-  margin-bottom:20px;
-  min-height:20px;
-  color:#94a3b8;
-}
 button{
   width:100%;
   padding:16px;
@@ -50,14 +47,12 @@ button{
   font-size:16px;
   font-weight:700;
   cursor:pointer;
-}
-.primary{
   background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
+  transition:0.2s;
 }
-.secondary{
-  background:#2f3640;
-  color:white;
+button:hover{
+  transform:translateY(-2px);
 }
 </style>
 </head>
@@ -66,119 +61,28 @@ button{
 <div class="card">
   <h2>🔥 UBIQUE</h2>
   <input type="email" id="email" placeholder="Ton email">
-  <div id="status" class="status"></div>
-  <button id="actionBtn" class="primary">Continuer</button>
+  <button id="connectBtn">Connecter Strava</button>
 </div>
 
 <script>
 
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+document.getElementById("connectBtn").addEventListener("click", ()=>{
 
-let userState = "unknown"; 
-// new | noToken | connected
-
-const emailInput = document.getElementById("email");
-const statusText = document.getElementById("status");
-const actionBtn = document.getElementById("actionBtn");
-
-emailInput.addEventListener("blur", ()=>{
-  const email = emailInput.value.trim();
-  if(email){
-    checkEmail(email);
-  }
-});
-
-actionBtn.addEventListener("click", ()=>{
-
-  const email = emailInput.value.trim();
+  const email = document.getElementById("email").value.trim();
 
   if(!email){
     alert("Entre ton email");
     return;
   }
 
-  const emailClean = email.toLowerCase().trim();
-  localStorage.setItem("ubique_email", emailClean);
+  const clean = email.toLowerCase().trim();
 
-  if(userState === "connected"){
-    window.location.href = "/dashboard.html";
-    return;
-  }
-
-  if(userState === "noToken"){
-    window.location.href =
-      window.location.origin +
-      "/.netlify/functions/strava-auth?email=" +
-      encodeURIComponent(emailClean);
-    return;
-  }
-
-  if(userState === "new"){
-    window.location.href =
-      "/signup.html?email=" +
-      encodeURIComponent(emailClean);
-    return;
-  }
+  window.location.href =
+    window.location.origin +
+    "/.netlify/functions/strava-auth?email=" +
+    encodeURIComponent(clean);
 
 });
-
-async function checkEmail(email){
-
-  statusText.textContent = "Vérification...";
-  userState = "unknown";
-
-  try{
-
-    const emailClean = email.toLowerCase().trim();
-
-    const res = await fetch(GS_URL + "?mode=getAthletes");
-    const data = await res.json();
-
-    const athletes = Array.isArray(data.athletes)
-      ? data.athletes
-      : [];
-
-    let found = null;
-
-    for(const a of athletes){
-      const sheetEmail = (a.email || "")
-        .toString()
-        .toLowerCase()
-        .trim();
-
-      if(sheetEmail === emailClean){
-        found = a;
-        break;
-      }
-    }
-
-    if(!found){
-      userState = "new";
-      statusText.textContent = "Nouvel utilisateur";
-      actionBtn.textContent = "Créer un compte";
-      actionBtn.className = "secondary";
-      return;
-    }
-
-    const token = (found.refresh_token || "").trim();
-    const athleteId = found.athlete_id;
-
-    if(token && token.length > 30 && athleteId){
-      userState = "connected";
-      statusText.textContent = "Déjà connecté à Strava ✅";
-      actionBtn.textContent = "Accéder au Dashboard";
-      actionBtn.className = "primary";
-    }else{
-      userState = "noToken";
-      statusText.textContent = "Compte existant – connecter Strava";
-      actionBtn.textContent = "Connecter Strava";
-      actionBtn.className = "secondary";
-    }
-
-  }catch(e){
-    statusText.textContent = "Erreur serveur";
-  }
-}
 
 </script>
 
