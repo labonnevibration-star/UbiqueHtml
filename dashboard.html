@@ -1,165 +1,159 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>Dashboard — UBIQUE</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+const SPREADSHEET_ID = "1nTBH8kNMFvC9Y56Rg9ctDwYKfbRh0g8iW9GlmH-0HYA";
+const WRITE_KEY = "UBIQUE_2026_SECURE";
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
 
-<style>
-body{
-  margin:0;
-  background:#0b0f14;
-  color:white;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  padding:20px;
-}
-.container{
-  max-width:1100px;
-  margin:auto;
-}
-h1{
-  font-size:22px;
-  margin-bottom:20px;
-}
-button{
-  padding:14px 20px;
-  background:#f04e23;
-  border:none;
-  border-radius:8px;
-  color:white;
-  font-weight:700;
-  cursor:pointer;
-  margin-bottom:30px;
-}
-button:hover{
-  background:#ff6238;
-}
-canvas{
-  background:#161b22;
-  border-radius:12px;
-  padding:20px;
-}
-@media(max-width:768px){
-  h1{font-size:18px;}
-}
-</style>
-</head>
+    if (data.key !== WRITE_KEY) {
+      return json_(401, { ok:false, error:"unauthorized" });
+    }
 
-<body>
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-<div class="container">
-  <h1>🔥 UBIQUE — Progression Semaine</h1>
-  <button onclick="runSync()">Sync & Afficher</button>
-  <canvas id="chart"></canvas>
-</div>
+    if (data.mode === "saveActivitiesBatch") {
 
-<script>
+      let sheet = ss.getSheetByName("Activities");
+      if (!sheet) {
+        sheet = ss.insertSheet("Activities");
+        sheet.appendRow(["email","athlete_id","activity_id","date","distance_km"]);
+      }
 
-// 🔥 Plugin pour afficher total au bout des barres
-const totalPlugin = {
-  id: 'totalPlugin',
-  afterDatasetsDraw(chart){
-    const {ctx} = chart;
-    ctx.save();
-    ctx.fillStyle = "white";
-    ctx.font = "bold 14px sans-serif";
+      const lastRow = sheet.getLastRow();
+      const existingIds = lastRow > 1
+        ? new Set(sheet.getRange(2,3,lastRow-1,1).getValues().flat())
+        : new Set();
 
-    chart.data.labels.forEach((label,index)=>{
-      let total = 0;
-      chart.data.datasets.forEach(dataset=>{
-        total += dataset.data[index] || 0;
+      const rows = [];
+
+      for (const act of data.activities) {
+        if (!existingIds.has(act.activity_id)) {
+          rows.push([
+            act.email,
+            act.athlete_id,
+            act.activity_id,
+            act.date,
+            act.distance_km
+          ]);
+        }
+      }
+
+      if (rows.length > 0) {
+        sheet.getRange(lastRow+1,1,rows.length,5).setValues(rows);
+      }
+
+      return json_(200,{ ok:true, inserted:rows.length });
+    }
+
+    return json_(200,{ ok:true });
+
+  } catch(err) {
+    return json_(500,{ ok:false, error:String(err) });
+  }
+}
+
+
+
+function doGet(e) {
+  try {
+
+    const mode = e.parameter.mode;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // 🔥 GET ATHLETES
+    if (mode === "getAthletes") {
+
+      const sheet = ss.getSheetByName("Athletes");
+      if (!sheet) return json_(200,{ athletes:[] });
+
+      const data = sheet.getDataRange().getValues();
+      data.shift();
+
+      const athletes = data.map(row => ({
+        email: row[0],
+        handle: row[1],
+        athlete_id: row[2],
+        refresh_token: row[3]
+      }));
+
+      return json_(200,{ athletes });
+    }
+
+
+    // 🔥 GET WEEKLY STATS (robuste)
+    if (mode === "getWeeklyStats") {
+
+      const activitiesSheet = ss.getSheetByName("Activities");
+      const athletesSheet = ss.getSheetByName("Athletes");
+
+      if (!activitiesSheet || !athletesSheet)
+        return json_(200,{ stats:{} });
+
+      const activities = activitiesSheet.getDataRange().getValues();
+      const athletesData = athletesSheet.getDataRange().getValues();
+
+      activities.shift();
+      athletesData.shift();
+
+      const handleMap = {};
+      athletesData.forEach(row => {
+        handleMap[row[2]] = row[1]; // athlete_id -> handle
       });
 
-      const meta = chart.getDatasetMeta(0);
-      const bar = meta.data[index];
-      if(bar){
-        ctx.fillText(
-          total.toFixed(1)+" km",
-          bar.x + 10,
-          bar.y + 4
-        );
+      // 🔥 Calcul 7 derniers jours propre
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        days.push(d.toISOString().slice(0,10));
       }
-    });
 
-    ctx.restore();
+      const result = {};
+
+      // 🔥 Initialiser structure vide pour chaque athlète
+      Object.values(handleMap).forEach(handle=>{
+        result[handle] = {};
+        days.forEach(day=>{
+          result[handle][day] = 0;
+        });
+      });
+
+      // 🔥 Ajouter distances
+      activities.forEach(row => {
+
+        const athlete_id = row[1];
+        const date = new Date(row[3]);
+        date.setHours(0,0,0,0);
+
+        const dayKey = date.toISOString().slice(0,10);
+
+        if (!days.includes(dayKey)) return;
+
+        const distance = Number(row[4]) || 0;
+        const handle = handleMap[athlete_id];
+
+        if (!handle) return;
+
+        result[handle][dayKey] += distance;
+      });
+
+      return json_(200,{ stats:result });
+    }
+
+    return json_(200,{ ok:true });
+
+  } catch(err) {
+    return json_(500,{ ok:false, error:String(err) });
   }
-};
-
-async function runSync(){
-
-  await fetch("/.netlify/functions/sync-activities");
-
-  const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
-  const data = await res.json();
-  buildChart(data.stats);
 }
 
-function buildChart(stats){
 
-  const ctx = document.getElementById("chart").getContext("2d");
 
-  const today = new Date();
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(today.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-
-  const colors = [
-    "#f04e23",
-    "#ff7a45",
-    "#ff9b63",
-    "#ffb580",
-    "#ffc89c",
-    "#ffd8b5",
-    "#ffe6cc"
-  ];
-
-  const datasets = days.map((day,index)=>({
-    label: day,
-    data: Object.keys(stats).map(athlete => {
-
-      const value = stats[athlete][day];
-
-      if(!value || value === 0){
-        return 0.2; // segment visuel minimal
-      }
-
-      return Number(value.toFixed(2));
-    }),
-    backgroundColor: Object.keys(stats).map(athlete=>{
-      const value = stats[athlete][day];
-      return (!value || value === 0) ? "#2a2f36" : colors[index];
-    })
-  }));
-
-  new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels: Object.keys(stats),
-      datasets: datasets
-    },
-    options:{
-      indexAxis:"y",
-      responsive:true,
-      plugins:{
-        legend:{ labels:{ color:"white" }},
-        tooltip:{
-          callbacks:{
-            label:function(context){
-              if(context.raw === 0.2){
-                return "KM non fait";
-              }
-              return context.raw + " km";
-            }
-          }
-        }
-      },
-      scales:{
-        x:{
-          stacked:true,
-          beginAtZero:true,
-          ticks:{color:"
+function json_(status,obj){
+  return ContentService
+    .createTextOutput(JSON.stringify({status,...obj}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
