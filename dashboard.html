@@ -1,179 +1,173 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>UBIQUE — Weekly Timeline</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body{
-  margin:0;
-  background:#0d1117;
-  color:white;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  padding:20px;
-}
-.container{
-  max-width:1200px;
-  margin:auto;
-}
-h1{
-  font-size:22px;
-  margin-bottom:25px;
-}
-button{
-  padding:14px 22px;
-  background:linear-gradient(90deg,#ff512f,#dd2476);
-  border:none;
-  border-radius:8px;
-  color:white;
-  font-weight:700;
-  cursor:pointer;
-  margin-bottom:35px;
-}
-button:hover{opacity:0.9;}
-canvas{
-  background:#161b22;
-  border-radius:14px;
-  padding:20px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-  <h1>🔥 UBIQUE — Timeline Semaine</h1>
-  <button onclick="runSync()">Sync & Afficher</button>
-  <canvas id="chart"></canvas>
-</div>
-
 <script>
 
-let chartInstance=null;
+let chartInstance = null;
+const OBJECTIF_JOUR = 1;
+const JOURS = 7;
 
-async function runSync(){
+async function runSync() {
 
   await fetch("/.netlify/functions/sync-activities");
 
-  const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
+  const res = await fetch(
+    "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats"
+  );
+
   const data = await res.json();
-
-  if(!data.stats){
-    alert("Erreur récupération stats");
-    return;
-  }
-
   buildChart(data.stats);
 }
 
-function buildChart(stats){
+function buildChart(stats) {
 
-  if(chartInstance) chartInstance.destroy();
+  if (chartInstance) chartInstance.destroy();
 
-  const ctx=document.getElementById("chart").getContext("2d");
-  const athletes=Object.keys(stats);
+  const ctx = document.getElementById("chart").getContext("2d");
+  const athletes = Object.keys(stats);
 
-  const today=new Date();
-  const days=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date();
-    d.setDate(today.getDate()-i);
-    days.push(d.toISOString().slice(0,10));
+  const today = new Date();
+  const days = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
   }
 
-  const totals = athletes.map(a=>{
-    return days.reduce((sum,d)=> sum + (stats[a][d] || 0), 0);
+  const doneData = [];
+  const missingData = [];
+  const totals = [];
+
+  athletes.forEach(a => {
+
+    let done = 0;
+    let missing = 0;
+
+    days.forEach(day => {
+      const km = stats[a][day] || 0;
+
+      if (km >= OBJECTIF_JOUR) {
+        done += OBJECTIF_JOUR;
+      } else {
+        done += km;
+        missing += (OBJECTIF_JOUR - km);
+      }
+    });
+
+    doneData.push(Number(done.toFixed(2)));
+    missingData.push(Number(missing.toFixed(2)));
+    totals.push(done + missing);
   });
 
-  const gradient = ctx.createLinearGradient(0,0,600,0);
-  gradient.addColorStop(0,"#ff512f");
-  gradient.addColorStop(1,"#dd2476");
+  const gradient = ctx.createLinearGradient(0, 0, 600, 0);
+  gradient.addColorStop(0, "#ff512f");
+  gradient.addColorStop(1, "#dd2476");
 
-  const customPlugin={
-    id:'timelinePlugin',
-    afterDatasetsDraw(chart){
+  const accoladePlugin = {
+    id: "accoladePlugin",
+    afterDatasetsDraw(chart) {
 
-      const {ctx, scales} = chart;
+      const { ctx, scales } = chart;
       ctx.save();
-      ctx.font="12px sans-serif";
-      ctx.fillStyle="white";
+      ctx.strokeStyle = "white";
+      ctx.fillStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.font = "bold 12px sans-serif";
 
-      athletes.forEach((athlete,i)=>{
+      athletes.forEach((athlete, i) => {
 
-        let cumulative=0;
+        const done = doneData[i];
+        if (done === 0) return;
+
         const y = scales.y.getPixelForValue(i);
+        const xStart = scales.x.getPixelForValue(0);
+        const xEnd = scales.x.getPixelForValue(done);
 
-        days.forEach(day=>{
-          const km = stats[athlete][day] || 0;
-          if(km===0) return;
+        // Ligne horizontale accolade
+        ctx.beginPath();
+        ctx.moveTo(xStart, y - 18);
+        ctx.lineTo(xEnd, y - 18);
+        ctx.stroke();
 
-          const xStart = scales.x.getPixelForValue(cumulative);
-          const xEnd = scales.x.getPixelForValue(cumulative + km);
+        // Crochet gauche
+        ctx.beginPath();
+        ctx.moveTo(xStart, y - 18);
+        ctx.lineTo(xStart, y - 12);
+        ctx.stroke();
 
-          // Crochet début
-          ctx.beginPath();
-          ctx.moveTo(xStart,y-10);
-          ctx.lineTo(xStart,y-20);
-          ctx.strokeStyle="white";
-          ctx.stroke();
+        // Crochet droite
+        ctx.beginPath();
+        ctx.moveTo(xEnd, y - 18);
+        ctx.lineTo(xEnd, y - 12);
+        ctx.stroke();
 
-          // Crochet fin
-          ctx.beginPath();
-          ctx.moveTo(xEnd,y-10);
-          ctx.lineTo(xEnd,y-20);
-          ctx.stroke();
-
-          // Date centrée
-          ctx.textAlign="center";
-          ctx.fillText(
-            day.slice(5),
-            (xStart+xEnd)/2,
-            y-25
-          );
-
-          cumulative+=km;
-        });
-
+        // Texte km faits
+        ctx.textAlign = "center";
+        ctx.fillText(
+          done.toFixed(1) + " km",
+          (xStart + xEnd) / 2,
+          y - 24
+        );
       });
 
       ctx.restore();
     }
   };
 
-  chartInstance=new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels:athletes,
-      datasets:[{
-        data:totals,
-        backgroundColor:gradient,
-        borderRadius:8
-      }]
-    },
-    options:{
-      indexAxis:'y',
-      responsive:true,
-      plugins:{
-        legend:{display:false}
-      },
-      scales:{
-        x:{
-          beginAtZero:true,
-          ticks:{color:"white"}
+  chartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: athletes,
+      datasets: [
+        {
+          label: "KM faits",
+          data: doneData,
+          backgroundColor: gradient,
+          borderRadius: 8,
+          stack: "total"
         },
-        y:{
-          ticks:{color:"white"}
+        {
+          label: "KM manquants",
+          data: missingData,
+          backgroundColor: "#2f3640",
+          borderRadius: 8,
+          stack: "total"
+        }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: { color: "white" }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              return ctx.dataset.label + " : " + ctx.raw + " km";
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          beginAtZero: true,
+          max: OBJECTIF_JOUR * JOURS,
+          ticks: { color: "white" },
+          title: {
+            display: true,
+            text: "Objectif semaine : " + (OBJECTIF_JOUR * JOURS) + " km",
+            color: "white"
+          }
+        },
+        y: {
+          stacked: true,
+          ticks: { color: "white" }
         }
       }
     },
-    plugins:[customPlugin]
+    plugins: [accoladePlugin]
   });
-
 }
 
 </script>
-
-</body>
-</html>
