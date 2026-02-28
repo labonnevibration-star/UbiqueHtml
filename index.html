@@ -1,123 +1,3 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>UBIQUE</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-*{box-sizing:border-box}
-
-body{
-  margin:0;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:linear-gradient(135deg,#0d1117,#111827);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  color:white;
-}
-
-.card{
-  background:#161b22;
-  padding:50px 40px;
-  border-radius:20px;
-  width:100%;
-  max-width:420px;
-  text-align:center;
-  box-shadow:0 30px 60px rgba(0,0,0,.6);
-  transition:0.3s ease;
-}
-
-.logo{
-  font-size:28px;
-  font-weight:800;
-  margin-bottom:30px;
-  letter-spacing:1px;
-}
-
-input{
-  width:100%;
-  padding:15px;
-  border-radius:12px;
-  border:none;
-  background:#0d1117;
-  color:white;
-  font-size:16px;
-  margin-bottom:20px;
-  text-align:center;
-  outline:none;
-}
-
-button{
-  width:100%;
-  padding:16px;
-  border:none;
-  border-radius:12px;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-  position:relative;
-  overflow:hidden;
-  transition:0.25s ease;
-}
-
-.primary{
-  background:linear-gradient(90deg,#ff512f,#dd2476);
-  color:white;
-  box-shadow:0 15px 30px rgba(221,36,118,.4);
-}
-
-.primary:hover{
-  transform:translateY(-2px);
-}
-
-.secondary{
-  background:#2f3640;
-  color:white;
-}
-
-.status{
-  font-size:14px;
-  margin-bottom:18px;
-  color:#9ca3af;
-  min-height:18px;
-}
-
-.loader{
-  width:18px;
-  height:18px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-top:2px solid white;
-  border-radius:50%;
-  animation:spin 0.7s linear infinite;
-  display:inline-block;
-}
-
-@keyframes spin{
-  0%{transform:rotate(0deg)}
-  100%{transform:rotate(360deg)}
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-  <div class="logo">🔥 UBIQUE</div>
-
-  <input type="email" id="email" placeholder="Ton email">
-
-  <div id="status" class="status"></div>
-
-  <button id="actionBtn" class="primary" onclick="handleAction()">
-    Continuer
-  </button>
-
-</div>
-
 <script>
 
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
@@ -147,19 +27,34 @@ emailInput.addEventListener("blur", ()=>{
 async function checkRegistration(email){
 
   setLoading(true);
+  isRegistered = false;
   statusText.textContent = "Vérification...";
 
   try{
+
     const res = await fetch(GS_URL + "?mode=getAthletes");
     const data = await res.json();
-    const athletes = data.athletes || [];
+    const athletes = Array.isArray(data.athletes) ? data.athletes : [];
 
-    const found = athletes.find(a =>
-      a.email &&
-      a.email.toLowerCase() === email.toLowerCase() &&
-      a.refresh_token &&
-      a.refresh_token.length > 10
-    );
+    const emailClean = email.toLowerCase().trim();
+
+    const found = athletes.find(a => {
+
+      if(!a.email) return false;
+
+      const sheetEmail = String(a.email).toLowerCase().trim();
+      if(sheetEmail !== emailClean) return false;
+
+      const token = (a.refresh_token || "").toString().trim();
+
+      // Token Strava valide = long string alphanumérique
+      const tokenValid =
+        token.length > 30 &&
+        token !== "null" &&
+        token !== "undefined";
+
+      return tokenValid;
+    });
 
     if(found){
       isRegistered = true;
@@ -174,6 +69,7 @@ async function checkRegistration(email){
     }
 
   }catch(e){
+    console.error(e);
     statusText.textContent = "Erreur serveur";
   }
 
@@ -185,6 +81,7 @@ function handleAction(){
   if(loading) return;
 
   const email = emailInput.value.trim();
+
   if(!email){
     alert("Entre ton email");
     return;
@@ -200,6 +97,7 @@ function handleAction(){
 }
 
 function setLoading(state){
+
   loading = state;
 
   if(state){
@@ -207,10 +105,16 @@ function setLoading(state){
     actionBtn.disabled = true;
   }else{
     actionBtn.disabled = false;
+
+    // remet le texte correct après loading
+    if(isRegistered){
+      actionBtn.textContent = "Accéder au Dashboard";
+      actionBtn.className = "primary";
+    }else{
+      actionBtn.textContent = "Se connecter à Strava";
+      actionBtn.className = "secondary";
+    }
   }
 }
 
 </script>
-
-</body>
-</html>
