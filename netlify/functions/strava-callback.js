@@ -16,7 +16,14 @@ exports.handler = async (event) => {
       Buffer.from(state, "base64").toString()
     );
 
-    const email = decoded.email;
+    const email = (decoded.email || "").toLowerCase().trim();
+
+    if (!email) {
+      return {
+        statusCode: 400,
+        body: "Email missing in state"
+      };
+    }
 
     const client_id = process.env.STRAVA_CLIENT_ID;
     const client_secret = process.env.STRAVA_CLIENT_SECRET;
