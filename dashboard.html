@@ -1,12 +1,13 @@
 const SPREADSHEET_ID = "1nTBH8kNMFvC9Y56Rg9ctDwYKfbRh0g8iW9GlmH-0HYA";
 const WRITE_KEY = "UBIQUE_2026_SECURE";
 
+
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
 
     if (data.key !== WRITE_KEY) {
-      return json_(401, { ok:false, error:"unauthorized" });
+      return json_(401, { ok: false, error: "unauthorized" });
     }
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -14,12 +15,14 @@ function doPost(e) {
     if (data.mode === "saveActivitiesBatch") {
 
       let sheet = ss.getSheetByName("Activities");
+
       if (!sheet) {
         sheet = ss.insertSheet("Activities");
         sheet.appendRow(["email","athlete_id","activity_id","date","distance_km"]);
       }
 
       const lastRow = sheet.getLastRow();
+
       const existingIds = lastRow > 1
         ? new Set(sheet.getRange(2,3,lastRow-1,1).getValues().flat())
         : new Set();
@@ -39,16 +42,16 @@ function doPost(e) {
       }
 
       if (rows.length > 0) {
-        sheet.getRange(lastRow+1,1,rows.length,5).setValues(rows);
+        sheet.getRange(lastRow + 1, 1, rows.length, 5).setValues(rows);
       }
 
-      return json_(200,{ ok:true, inserted:rows.length });
+      return json_(200, { ok: true, inserted: rows.length });
     }
 
-    return json_(200,{ ok:true });
+    return json_(200, { ok: true });
 
-  } catch(err) {
-    return json_(500,{ ok:false, error:String(err) });
+  } catch (err) {
+    return json_(500, { ok: false, error: String(err) });
   }
 }
 
@@ -64,10 +67,10 @@ function doGet(e) {
     if (mode === "getAthletes") {
 
       const sheet = ss.getSheetByName("Athletes");
-      if (!sheet) return json_(200,{ athletes:[] });
+      if (!sheet) return json_(200, { athletes: [] });
 
       const data = sheet.getDataRange().getValues();
-      data.shift();
+      data.shift(); // remove header
 
       const athletes = data.map(row => ({
         email: row[0],
@@ -76,18 +79,18 @@ function doGet(e) {
         refresh_token: row[3]
       }));
 
-      return json_(200,{ athletes });
+      return json_(200, { athletes });
     }
 
 
-    // 🔥 GET WEEKLY STATS (robuste)
+    // 🔥 GET WEEKLY STATS
     if (mode === "getWeeklyStats") {
 
       const activitiesSheet = ss.getSheetByName("Activities");
       const athletesSheet = ss.getSheetByName("Athletes");
 
       if (!activitiesSheet || !athletesSheet)
-        return json_(200,{ stats:{} });
+        return json_(200, { stats: {} });
 
       const activities = activitiesSheet.getDataRange().getValues();
       const athletesData = athletesSheet.getDataRange().getValues();
@@ -100,7 +103,7 @@ function doGet(e) {
         handleMap[row[2]] = row[1]; // athlete_id -> handle
       });
 
-      // 🔥 Calcul 7 derniers jours propre
+      // 🔥 Calcul des 7 derniers jours
       const today = new Date();
       today.setHours(0,0,0,0);
 
@@ -113,15 +116,15 @@ function doGet(e) {
 
       const result = {};
 
-      // 🔥 Initialiser structure vide pour chaque athlète
-      Object.values(handleMap).forEach(handle=>{
+      // Initialiser structure
+      Object.values(handleMap).forEach(handle => {
         result[handle] = {};
-        days.forEach(day=>{
+        days.forEach(day => {
           result[handle][day] = 0;
         });
       });
 
-      // 🔥 Ajouter distances
+      // Ajouter distances
       activities.forEach(row => {
 
         const athlete_id = row[1];
@@ -140,20 +143,20 @@ function doGet(e) {
         result[handle][dayKey] += distance;
       });
 
-      return json_(200,{ stats:result });
+      return json_(200, { stats: result });
     }
 
-    return json_(200,{ ok:true });
+    return json_(200, { ok: true });
 
-  } catch(err) {
-    return json_(500,{ ok:false, error:String(err) });
+  } catch (err) {
+    return json_(500, { ok: false, error: String(err) });
   }
 }
 
 
 
-function json_(status,obj){
+function json_(status, obj) {
   return ContentService
-    .createTextOutput(JSON.stringify({status,...obj}))
+    .createTextOutput(JSON.stringify({ status, ...obj }))
     .setMimeType(ContentService.MimeType.JSON);
 }
