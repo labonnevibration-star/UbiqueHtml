@@ -4,48 +4,129 @@
 <meta charset="utf-8">
 <title>UBIQUE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
 body{
   margin:0;
-  background:#0a0d12;
-  color:#eaeef2;
+  background:#0d1117;
+  color:#e6edf3;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
-.wrap{text-align:center}
-h1{
-  font-size:12px;
-  letter-spacing:6px;
-  color:#7d8590;
-  margin-bottom:40px;
+.card{
+  background:#161b22;
+  padding:40px;
+  border-radius:16px;
+  width:100%;
+  max-width:400px;
+  text-align:center;
 }
-.quote{
-  font-size:24px;
-  font-weight:600;
-  margin-bottom:50px;
+input{
+  width:100%;
+  padding:12px;
+  margin-bottom:20px;
+  border-radius:8px;
+  border:none;
+  font-size:16px;
 }
-a{
-  display:inline-block;
-  padding:18px 50px;
-  background:#f04e23;
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:16px;
+}
+.primary{
+  background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
-  text-decoration:none;
-  font-weight:800;
-  letter-spacing:2px;
-  border-radius:4px;
-  transition:.15s;
 }
-a:hover{background:#ff6238}
+.secondary{
+  background:#2f3640;
+  color:white;
+}
+.hidden{
+  display:none;
+}
 </style>
 </head>
+
 <body>
-<div class="wrap">
-  <h1>UBIQUE</h1>
-  <div class="quote">You don’t know me son.</div>
-  <a href="/signup.html">STAY HARD</a>
+
+<div class="card">
+
+  <h2>🔥 UBIQUE</h2>
+
+  <input type="email" id="email" placeholder="Ton email">
+
+  <button class="primary" onclick="checkAthlete()">Continuer</button>
+
+  <div id="dashboardBtn" class="hidden">
+    <br>
+    <button class="primary" onclick="goDashboard()">
+      Accéder au Dashboard
+    </button>
+  </div>
+
+  <div id="signupBtn" class="hidden">
+    <br>
+    <button class="secondary" onclick="goSignup()">
+      S'inscrire au challenge
+    </button>
+  </div>
+
 </div>
+
+<script>
+
+const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+
+let currentEmail = "";
+
+async function checkAthlete(){
+
+  const email = document.getElementById("email").value.trim();
+
+  if(!email){
+    alert("Entre ton email");
+    return;
+  }
+
+  currentEmail = email;
+
+  try{
+    const res = await fetch(GS_URL + "?mode=getAthletes");
+    const data = await res.json();
+    const athletes = data.athletes || [];
+
+    const found = athletes.find(a => a.email.toLowerCase() === email.toLowerCase());
+
+    if(found){
+      document.getElementById("dashboardBtn").classList.remove("hidden");
+      document.getElementById("signupBtn").classList.add("hidden");
+    }else{
+      document.getElementById("signupBtn").classList.remove("hidden");
+      document.getElementById("dashboardBtn").classList.add("hidden");
+    }
+
+  }catch(e){
+    alert("Erreur serveur");
+  }
+}
+
+function goDashboard(){
+  window.location.href = "/dashboard.html";
+}
+
+function goSignup(){
+  window.location.href = "/signup.html";
+}
+
+</script>
+
 </body>
 </html>
