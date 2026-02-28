@@ -6,66 +6,98 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+*{box-sizing:border-box}
+
 body{
   margin:0;
-  background:#0d1117;
-  color:#e6edf3;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  background:linear-gradient(135deg,#0d1117,#111827);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:white;
 }
+
 .card{
   background:#161b22;
-  padding:40px;
-  border-radius:16px;
+  padding:50px 40px;
+  border-radius:20px;
   width:100%;
   max-width:420px;
   text-align:center;
-  box-shadow:0 15px 40px rgba(0,0,0,.4);
+  box-shadow:0 30px 60px rgba(0,0,0,.6);
+  transition:0.3s ease;
 }
-h1{
-  margin-bottom:25px;
+
+.logo{
+  font-size:28px;
+  font-weight:800;
+  margin-bottom:30px;
+  letter-spacing:1px;
 }
+
 input{
   width:100%;
-  padding:14px;
-  border-radius:10px;
+  padding:15px;
+  border-radius:12px;
   border:none;
-  font-size:16px;
-  margin-bottom:20px;
   background:#0d1117;
   color:white;
+  font-size:16px;
+  margin-bottom:20px;
+  text-align:center;
+  outline:none;
 }
+
 button{
   width:100%;
-  padding:14px;
+  padding:16px;
   border:none;
-  border-radius:10px;
-  font-weight:bold;
+  border-radius:12px;
   font-size:16px;
+  font-weight:700;
   cursor:pointer;
-  transition:0.2s ease;
+  position:relative;
+  overflow:hidden;
+  transition:0.25s ease;
 }
+
 .primary{
   background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
+  box-shadow:0 15px 30px rgba(221,36,118,.4);
 }
+
 .primary:hover{
-  transform:scale(1.03);
+  transform:translateY(-2px);
 }
+
 .secondary{
   background:#2f3640;
   color:white;
 }
-.hidden{
-  display:none;
-}
+
 .status{
-  margin-bottom:15px;
   font-size:14px;
-  color:#8b949e;
+  margin-bottom:18px;
+  color:#9ca3af;
+  min-height:18px;
+}
+
+.loader{
+  width:18px;
+  height:18px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top:2px solid white;
+  border-radius:50%;
+  animation:spin 0.7s linear infinite;
+  display:inline-block;
+}
+
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
 }
 </style>
 </head>
@@ -74,7 +106,7 @@ button{
 
 <div class="card">
 
-  <h1>🔥 UBIQUE</h1>
+  <div class="logo">🔥 UBIQUE</div>
 
   <input type="email" id="email" placeholder="Ton email">
 
@@ -91,12 +123,12 @@ button{
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
 let isRegistered = false;
+let loading = false;
 
 const emailInput = document.getElementById("email");
 const statusText = document.getElementById("status");
 const actionBtn = document.getElementById("actionBtn");
 
-// 🔥 Auto load email si déjà sauvegardé
 document.addEventListener("DOMContentLoaded", ()=>{
   const saved = localStorage.getItem("ubique_email");
   if(saved){
@@ -105,7 +137,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   }
 });
 
-// 🔥 Vérification auto après saisie
 emailInput.addEventListener("blur", ()=>{
   const email = emailInput.value.trim();
   if(email){
@@ -115,8 +146,8 @@ emailInput.addEventListener("blur", ()=>{
 
 async function checkRegistration(email){
 
+  setLoading(true);
   statusText.textContent = "Vérification...";
-  isRegistered = false;
 
   try{
     const res = await fetch(GS_URL + "?mode=getAthletes");
@@ -124,30 +155,36 @@ async function checkRegistration(email){
     const athletes = data.athletes || [];
 
     const found = athletes.find(a =>
-      a.email.toLowerCase() === email.toLowerCase()
+      a.email &&
+      a.email.toLowerCase() === email.toLowerCase() &&
+      a.refresh_token &&
+      a.refresh_token.length > 10
     );
 
     if(found){
       isRegistered = true;
-      statusText.textContent = "Athlète déjà inscrit ✅";
+      statusText.textContent = "Connecté à Strava ✅";
       actionBtn.textContent = "Accéder au Dashboard";
       actionBtn.className = "primary";
     }else{
       isRegistered = false;
-      statusText.textContent = "Nouveau participant";
-      actionBtn.textContent = "S'inscrire au challenge";
+      statusText.textContent = "Non connecté à Strava";
+      actionBtn.textContent = "Se connecter à Strava";
       actionBtn.className = "secondary";
     }
 
   }catch(e){
     statusText.textContent = "Erreur serveur";
   }
+
+  setLoading(false);
 }
 
 function handleAction(){
 
-  const email = emailInput.value.trim();
+  if(loading) return;
 
+  const email = emailInput.value.trim();
   if(!email){
     alert("Entre ton email");
     return;
@@ -159,6 +196,17 @@ function handleAction(){
     window.location.href = "/dashboard.html";
   }else{
     window.location.href = "/signup.html?email=" + encodeURIComponent(email);
+  }
+}
+
+function setLoading(state){
+  loading = state;
+
+  if(state){
+    actionBtn.innerHTML = '<span class="loader"></span>';
+    actionBtn.disabled = true;
+  }else{
+    actionBtn.disabled = false;
   }
 }
 
