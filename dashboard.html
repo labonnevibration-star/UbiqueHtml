@@ -39,7 +39,7 @@ canvas{
 <div class="container">
   <h1>🔥 UBIQUE — Weekly Challenge</h1>
   <button onclick="loadData()">Sync</button>
-  <canvas id="chart" height="520"></canvas>
+  <canvas id="chart" height="550"></canvas>
 </div>
 
 <script>
@@ -144,13 +144,13 @@ function renderChart(stats){
           cumulative += OBJECTIF;
         });
 
-        // 🔥 TOTAL KM RÉELS EN HAUT (pas proportionnel)
+        // 🔥 TOTAL KM RÉEL EN HAUT
         const topY = scales.y.getPixelForValue(OBJECTIF * JOURS);
 
-        ctx.font="bold 15px sans-serif";
+        ctx.font="bold 16px sans-serif";
         ctx.fillStyle="#ffffff";
         ctx.textBaseline="bottom";
-        ctx.fillText(realTotal.toFixed(2)+" km", x, topY - 8);
+        ctx.fillText(realTotal.toFixed(2)+" km", x, topY - 20);
 
       });
 
@@ -169,6 +169,9 @@ function renderChart(stats){
     },
     options:{
       responsive:true,
+      layout:{
+        padding:{ top:60 }
+      },
       plugins:{ legend:{display:false} },
       scales:{
         x:{
@@ -179,12 +182,7 @@ function renderChart(stats){
           beginAtZero:true,
           max: OBJECTIF * JOURS,
           ticks:{ color:"#8b949e", stepSize:1 },
-          grid:{ color:"#21262d" },
-          title:{
-            display:true,
-            text:"Objectif semaine : 7 km",
-            color:"#c9d1d9"
-          }
+          grid:{ color:"#21262d" }
         }
       }
     },
