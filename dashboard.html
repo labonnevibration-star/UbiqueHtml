@@ -54,10 +54,17 @@ canvas{
 let chartInstance=null;
 
 async function runSync(){
+
   await fetch("/.netlify/functions/sync-activities");
 
   const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
   const data = await res.json();
+
+  if(!data.stats){
+    alert("Erreur récupération stats");
+    return;
+  }
+
   buildChart(data.stats);
 }
 
@@ -76,54 +83,34 @@ function buildChart(stats){
     days.push(d.toISOString().slice(0,10));
   }
 
-  const gradient = ctx.createLinearGradient(0,0,0,400);
+  const totals = athletes.map(a=>{
+    return days.reduce((sum,d)=> sum + (stats[a][d] || 0), 0);
+  });
+
+  const gradient = ctx.createLinearGradient(0,0,600,0);
   gradient.addColorStop(0,"#ff512f");
   gradient.addColorStop(1,"#dd2476");
 
-  const datasets = athletes.map((athlete)=>{
-
-    let cumulative=0;
-    const segments=[];
-
-    days.forEach(day=>{
-      const km=stats[athlete][day]||0;
-      segments.push({
-        start:cumulative,
-        end:cumulative+km,
-        date:day,
-        km:km
-      });
-      cumulative+=km;
-    });
-
-    return {
-      label:athlete,
-      data:[cumulative],
-      segments:segments,
-      backgroundColor:gradient
-    };
-  });
-
   const customPlugin={
-    id:'customSegments',
+    id:'timelinePlugin',
     afterDatasetsDraw(chart){
-      const {ctx}=chart;
+
+      const {ctx, scales} = chart;
       ctx.save();
       ctx.font="12px sans-serif";
       ctx.fillStyle="white";
 
-      chart.data.datasets.forEach((dataset,i)=>{
-        const meta=chart.getDatasetMeta(i);
-        const bar=meta.data[0];
+      athletes.forEach((athlete,i)=>{
 
-        if(!bar) return;
+        let cumulative=0;
+        const y = scales.y.getPixelForValue(i);
 
-        dataset.segments.forEach(seg=>{
-          if(seg.km===0) return;
+        days.forEach(day=>{
+          const km = stats[athlete][day] || 0;
+          if(km===0) return;
 
-          const xStart=bar.x - bar.width/2 + (seg.start/dataset.data[0])*bar.width;
-          const xEnd=bar.x - bar.width/2 + (seg.end/dataset.data[0])*bar.width;
-          const y=bar.y;
+          const xStart = scales.x.getPixelForValue(cumulative);
+          const xEnd = scales.x.getPixelForValue(cumulative + km);
 
           // Crochet début
           ctx.beginPath();
@@ -138,13 +125,15 @@ function buildChart(stats){
           ctx.lineTo(xEnd,y-20);
           ctx.stroke();
 
-          // Date au-dessus
+          // Date centrée
           ctx.textAlign="center";
           ctx.fillText(
-            seg.date.slice(5),
+            day.slice(5),
             (xStart+xEnd)/2,
             y-25
           );
+
+          cumulative+=km;
         });
 
       });
@@ -157,7 +146,11 @@ function buildChart(stats){
     type:"bar",
     data:{
       labels:athletes,
-      datasets:datasets
+      datasets:[{
+        data:totals,
+        backgroundColor:gradient,
+        borderRadius:8
+      }]
     },
     options:{
       indexAxis:'y',
