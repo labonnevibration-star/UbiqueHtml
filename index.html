@@ -36,18 +36,11 @@ body{
   background:var(--card);
   box-shadow:0 40px 80px rgba(0,0,0,.6);
   text-align:center;
-  animation:fadeIn .5s ease;
-}
-
-@keyframes fadeIn{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:translateY(0)}
 }
 
 h1{
-  margin:0 0 35px 0;
+  margin-bottom:30px;
   font-size:26px;
-  letter-spacing:.5px;
 }
 
 input{
@@ -59,16 +52,14 @@ input{
   color:white;
   font-size:16px;
   text-align:center;
-  outline:none;
-  margin-bottom:18px;
+  margin-bottom:15px;
 }
 
 .status{
   height:22px;
   font-size:14px;
-  margin-bottom:25px;
+  margin-bottom:20px;
   color:var(--muted);
-  transition:.3s;
 }
 
 button{
@@ -79,8 +70,8 @@ button{
   font-size:15px;
   font-weight:700;
   cursor:pointer;
-  transition:.25s;
   margin-top:10px;
+  transition:.2s;
 }
 
 .primary{
@@ -105,15 +96,34 @@ button:hover{
 <body>
 
 <div class="card">
+
   <h1>🔥 UBIQUE</h1>
 
   <input type="email" id="email" placeholder="Ton email">
 
   <div id="status" class="status"></div>
 
-  <button id="btnDashboard" class="primary hidden">Accéder au Dashboard</button>
-  <button id="btnConnect" class="secondary hidden">Connecter Strava</button>
-  <button id="btnSignup" class="secondary hidden">Créer un compte</button>
+  <!-- Bouton principal -->
+  <button id="btnMain" class="primary">Continuer</button>
+
+  <!-- Bouton connexion directe -->
+  <button id="btnDirect" class="secondary">
+    Connexion directe Strava
+  </button>
+
+  <!-- Boutons dynamiques -->
+  <button id="btnDashboard" class="primary hidden">
+    Accéder au Dashboard
+  </button>
+
+  <button id="btnConnect" class="secondary hidden">
+    Connecter Strava
+  </button>
+
+  <button id="btnSignup" class="secondary hidden">
+    Créer un compte
+  </button>
+
 </div>
 
 <script>
@@ -122,6 +132,9 @@ const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8
 
 const emailInput = document.getElementById("email");
 const statusText = document.getElementById("status");
+
+const btnMain = document.getElementById("btnMain");
+const btnDirect = document.getElementById("btnDirect");
 
 const btnDashboard = document.getElementById("btnDashboard");
 const btnConnect = document.getElementById("btnConnect");
@@ -133,10 +146,14 @@ function resetButtons(){
   btnSignup.classList.add("hidden");
 }
 
-emailInput.addEventListener("blur", async ()=>{
+btnMain.addEventListener("click", async ()=>{
 
   const email = emailInput.value.trim().toLowerCase();
-  if(!email) return;
+
+  if(!email){
+    alert("Entre ton email");
+    return;
+  }
 
   resetButtons();
   statusText.textContent = "Vérification...";
@@ -158,12 +175,9 @@ emailInput.addEventListener("blur", async ()=>{
       return;
     }
 
-    const hasToken =
-      found.refresh_token &&
-      found.refresh_token.length > 30 &&
-      found.athlete_id;
+    const token = (found.refresh_token || "").toString().trim();
 
-    if(hasToken){
+    if(token.length > 30){
       statusText.textContent = "Compte connecté à Strava";
       btnDashboard.classList.remove("hidden");
     }else{
@@ -177,12 +191,27 @@ emailInput.addEventListener("blur", async ()=>{
 
 });
 
+btnDirect.onclick = ()=>{
+  const email = emailInput.value.trim().toLowerCase();
+
+  if(!email){
+    alert("Entre ton email");
+    return;
+  }
+
+  window.location.href =
+    window.location.origin +
+    "/.netlify/functions/strava-auth?email=" +
+    encodeURIComponent(email);
+};
+
 btnDashboard.onclick = ()=>{
   window.location.href = "/dashboard.html";
 };
 
 btnConnect.onclick = ()=>{
   const email = emailInput.value.trim().toLowerCase();
+
   window.location.href =
     window.location.origin +
     "/.netlify/functions/strava-auth?email=" +
@@ -191,6 +220,7 @@ btnConnect.onclick = ()=>{
 
 btnSignup.onclick = ()=>{
   const email = emailInput.value.trim().toLowerCase();
+
   window.location.href =
     "/signup.html?email=" +
     encodeURIComponent(email);
