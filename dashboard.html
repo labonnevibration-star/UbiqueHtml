@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>UBIQUE — Weekly Performance</title>
+<title>UBIQUE — Weekly</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -25,7 +25,6 @@ button{
   font-weight:900;
   cursor:pointer;
   margin-bottom:20px;
-  box-shadow:0 10px 24px rgba(221,36,118,.25);
 }
 canvas{
   background:#161b22;
@@ -39,7 +38,7 @@ canvas{
 
 <div class="container">
   <h1>🔥 UBIQUE — Weekly Challenge</h1>
-  <button onclick="loadData()">Sync Premium</button>
+  <button onclick="loadData()">Sync</button>
   <canvas id="chart" height="520"></canvas>
 </div>
 
@@ -87,29 +86,12 @@ function renderChart(stats){
   if(chartInstance) chartInstance.destroy();
 
   const days = getLast7Days();
-  let athletes = Object.keys(stats);
+  const athletes = Object.keys(stats);
 
   if(athletes.length === 0){
     alert("Aucune donnée");
     return;
   }
-
-  // 🔥 Total réel par athlète
-  const totalsReal = athletes.map(a=>{
-    return days.reduce((sum,d)=> sum + (Number(stats?.[a]?.[d] || 0)),0);
-  });
-
-  // 🔥 TRI meilleur en premier
-  athletes = athletes
-    .map((name,i)=>({name,total:totalsReal[i]}))
-    .sort((a,b)=>b.total-a.total)
-    .map(o=>o.name);
-
-  const sortedTotals = athletes.map(a=>{
-    return days.reduce((sum,d)=> sum + (Number(stats?.[a]?.[d] || 0)),0);
-  });
-
-  const maxReal = Math.max(...sortedTotals, OBJECTIF * JOURS);
 
   const gradient = ctx.createLinearGradient(0,0,0,600);
   gradient.addColorStop(0,"#ff512f");
@@ -162,13 +144,13 @@ function renderChart(stats){
           cumulative += OBJECTIF;
         });
 
-        // 🔥 TOTAL RÉEL positionné à sa vraie hauteur
-        const yReal = scales.y.getPixelForValue(realTotal);
+        // 🔥 TOTAL KM RÉELS EN HAUT (pas proportionnel)
+        const topY = scales.y.getPixelForValue(OBJECTIF * JOURS);
 
         ctx.font="bold 15px sans-serif";
         ctx.fillStyle="#ffffff";
         ctx.textBaseline="bottom";
-        ctx.fillText(realTotal.toFixed(2)+" km", x, yReal - 6);
+        ctx.fillText(realTotal.toFixed(2)+" km", x, topY - 8);
 
       });
 
@@ -195,12 +177,12 @@ function renderChart(stats){
         },
         y:{
           beginAtZero:true,
-          max: Math.ceil(maxReal),
+          max: OBJECTIF * JOURS,
           ticks:{ color:"#8b949e", stepSize:1 },
           grid:{ color:"#21262d" },
           title:{
             display:true,
-            text:"Kilomètres cumulés (réels)",
+            text:"Objectif semaine : 7 km",
             color:"#c9d1d9"
           }
         }
