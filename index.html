@@ -21,8 +21,9 @@ body{
   padding:50px;
   border-radius:20px;
   width:100%;
-  max-width:400px;
+  max-width:420px;
   text-align:center;
+  box-shadow:0 30px 60px rgba(0,0,0,.5);
 }
 input{
   width:100%;
@@ -74,7 +75,7 @@ button{
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
 let userState = "unknown"; 
-// possible values: unknown | new | noToken | connected
+// new | noToken | connected
 
 const emailInput = document.getElementById("email");
 const statusText = document.getElementById("status");
@@ -90,27 +91,33 @@ emailInput.addEventListener("blur", ()=>{
 actionBtn.addEventListener("click", ()=>{
 
   const email = emailInput.value.trim();
+
   if(!email){
     alert("Entre ton email");
     return;
   }
 
-  localStorage.setItem("ubique_email", email);
+  const emailClean = email.toLowerCase().trim();
+  localStorage.setItem("ubique_email", emailClean);
 
   if(userState === "connected"){
     window.location.href = "/dashboard.html";
+    return;
   }
 
   if(userState === "noToken"){
     window.location.href =
+      window.location.origin +
       "/.netlify/functions/strava-auth?email=" +
-      encodeURIComponent(email.toLowerCase().trim());
+      encodeURIComponent(emailClean);
+    return;
   }
 
   if(userState === "new"){
     window.location.href =
       "/signup.html?email=" +
-      encodeURIComponent(email.toLowerCase().trim());
+      encodeURIComponent(emailClean);
+    return;
   }
 
 });
