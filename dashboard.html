@@ -1,119 +1,66 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>UBIQUE — Weekly Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+const ctx = document.getElementById("chart").getContext("2d");
 
-<style>
-body{
-  background:#0c1117;
-  color:white;
-  font-family:sans-serif;
-  padding:40px;
-  text-align:center;
+// 🔥 7 derniers jours
+const today = new Date();
+const days = [];
+
+for (let i = 6; i >= 0; i--) {
+  const d = new Date();
+  d.setDate(today.getDate() - i);
+  days.push(d.toISOString().split("T")[0]);
 }
-h2{
-  margin-bottom:20px;
-}
-button{
-  padding:14px 24px;
-  background:#f04e23;
-  border:none;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  margin-bottom:25px;
-}
-canvas{
-  background:#161b22;
-  padding:20px;
-  border-radius:12px;
-}
-</style>
-</head>
 
-<body>
+// 🔥 Construire datasets par jour
+const colors = [
+  "#f04e23",
+  "#ff7a45",
+  "#ff9b63",
+  "#ffb580",
+  "#ffc89c",
+  "#ffd8b5",
+  "#ffe6cc"
+];
 
-<h2>🔥 UBIQUE — 7 Derniers Jours</h2>
+const datasets = days.map((day,index)=>({
+  label: day,
+  data: Object.keys(stats).map(athlete => 
+    stats[athlete][day] ? Number(stats[athlete][day].toFixed(2)) : 0
+  ),
+  backgroundColor: colors[index]
+}));
 
-<button id="syncBtn">SYNC & AFFICHER</button>
-
-<canvas id="chart" width="900" height="400"></canvas>
-
-<script>
-
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-
-let chart;
-
-document.getElementById("syncBtn").addEventListener("click", async () => {
-
-  // 1️⃣ Lance le sync
-  await fetch("/.netlify/functions/sync-activities");
-
-  // 2️⃣ Récupère stats
-  const res = await fetch(GS_URL + "?mode=getWeeklyStats");
-  const data = await res.json();
-
-  const stats = data.stats;
-
-  const today = new Date();
-  const days = [];
-
-  for (let i=6;i>=0;i--){
-    const d = new Date();
-    d.setDate(today.getDate()-i);
-    days.push(d.toISOString().slice(0,10));
-  }
-
-  const datasets = [];
-  const colors = ["#f04e23","#00c2ff","#9b5cff","#00e676","#ffc107"];
-
-  let index = 0;
-
-  Object.keys(stats).forEach(handle => {
-
-    const values = days.map(day =>
-      stats[handle][day] ? Number(stats[handle][day].toFixed(2)) : 0
-    );
-
-    datasets.push({
-      label: handle,
-      data: values,
-      backgroundColor: colors[index % colors.length]
-    });
-
-    index++;
-  });
-
-  if (chart) chart.destroy();
-
-  const ctx = document.getElementById("chart").getContext("2d");
-
-  chart = new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels: days,
-      datasets: datasets
+new Chart(ctx,{
+  type:"bar",
+  data:{
+    labels: Object.keys(stats), // Athlètes
+    datasets: datasets
+  },
+  options:{
+    indexAxis:"y", // horizontal
+    responsive:true,
+    plugins:{
+      legend:{ labels:{ color:"white" } }
     },
-    options:{
-      responsive:true,
-      scales:{
-        y:{
-          beginAtZero:true,
-          title:{
-            display:true,
-            text:"Kilomètres"
-          }
+    scales:{
+      x:{
+        stacked:true,
+        beginAtZero:true,
+        ticks:{ color:"white" },
+        title:{
+          display:true,
+          text:"Kilomètres cumulés (7 jours)",
+          color:"white"
+        }
+      },
+      y:{
+        stacked:true,
+        ticks:{ color:"white" },
+        title:{
+          display:true,
+          text:"Athlètes",
+          color:"white"
         }
       }
     }
-  });
-
+  }
 });
-
-</script>
-
-</body>
-</html>
