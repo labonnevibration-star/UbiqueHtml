@@ -12,7 +12,6 @@
   --accent1:#ff512f;
   --accent2:#dd2476;
   --text:#e2e8f0;
-  --muted:#94a3b8;
 }
 
 *{box-sizing:border-box}
@@ -30,11 +29,10 @@ body{
 
 .card{
   width:100%;
-  max-width:460px;
-  padding:60px 45px;
-  border-radius:22px;
+  max-width:420px;
+  padding:60px 40px;
+  border-radius:20px;
   background:var(--card);
-  box-shadow:0 40px 80px rgba(0,0,0,.6);
   text-align:center;
 }
 
@@ -46,13 +44,13 @@ h1{
 input{
   width:100%;
   padding:16px;
-  border-radius:14px;
+  border-radius:12px;
   border:none;
   background:#0f172a;
   color:white;
   font-size:16px;
   text-align:center;
-  margin-bottom:25px;
+  margin-bottom:20px;
   outline:none;
 }
 
@@ -60,24 +58,11 @@ button{
   width:100%;
   padding:16px;
   border:none;
-  border-radius:14px;
-  font-size:15px;
+  border-radius:12px;
   font-weight:700;
   cursor:pointer;
-  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
-  transition:.2s;
-}
-
-button:hover{
-  transform:translateY(-2px);
-}
-
-.status{
-  margin-top:20px;
-  font-size:14px;
-  color:var(--muted);
-  min-height:22px;
 }
 </style>
 </head>
@@ -87,62 +72,51 @@ button:hover{
   <h1>🔥 UBIQUE</h1>
 
   <input type="email" id="email" placeholder="Ton email">
-
-  <button id="btnContinue">Continuer</button>
-
-  <div id="status" class="status"></div>
+  <button onclick="routeUser()">Continuer</button>
 </div>
 
 <script>
 
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
-const emailInput = document.getElementById("email");
-const btnContinue = document.getElementById("btnContinue");
-const statusText = document.getElementById("status");
+async function routeUser(){
 
-btnContinue.addEventListener("click", async ()=>{
-
-  const email = emailInput.value.trim().toLowerCase();
+  const email = document.getElementById("email").value.trim().toLowerCase();
 
   if(!email){
     alert("Entre ton email");
     return;
   }
 
-  statusText.textContent = "Vérification...";
-  btnContinue.disabled = true;
-
-  try{
+  try {
 
     const res = await fetch(GS_URL + "?mode=getAthletes");
     const data = await res.json();
-
     const athletes = Array.isArray(data.athletes) ? data.athletes : [];
 
-    const found = athletes.find(a =>
+    const user = athletes.find(a =>
       (a.email || "").toLowerCase().trim() === email
     );
 
-    // ❌ N'existe pas
-    if(!found){
+    // ❌ PAS EXISTANT → inscription ailleurs
+    if(!user){
       window.location.href =
         "/signup.html?email=" +
         encodeURIComponent(email);
       return;
     }
 
-    // Vérifie vrai refresh_token
-    const token = (found.refresh_token || "").toString().trim();
+    // Vérifie refresh_token
+    const token = (user.refresh_token || "").toString().trim();
 
-    const hasToken =
+    const connected =
       token !== "" &&
       token !== "null" &&
       token !== "undefined" &&
-      found.athlete_id;
+      user.athlete_id;
 
     // ⚠️ Existe mais pas connecté
-    if(!hasToken){
+    if(!connected){
       window.location.href =
         "/connect.html?email=" +
         encodeURIComponent(email);
@@ -154,12 +128,10 @@ btnContinue.addEventListener("click", async ()=>{
       "/dashboard.html?email=" +
       encodeURIComponent(email);
 
-  }catch(e){
-    statusText.textContent = "Erreur serveur";
+  } catch(err){
+    alert("Erreur serveur.");
   }
-
-  btnContinue.disabled = false;
-});
+}
 
 </script>
 
