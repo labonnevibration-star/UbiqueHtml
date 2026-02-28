@@ -10,18 +10,18 @@
 <style>
 body{
   margin:0;
-  background:#0c1117;
+  background:#0b0f14;
   color:white;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  padding:40px;
+  padding:20px;
 }
 .container{
-  max-width:1000px;
+  max-width:1100px;
   margin:auto;
 }
 h1{
-  font-size:26px;
-  margin-bottom:10px;
+  font-size:22px;
+  margin-bottom:20px;
 }
 button{
   padding:14px 20px;
@@ -41,40 +41,67 @@ canvas{
   border-radius:12px;
   padding:20px;
 }
+@media(max-width:768px){
+  h1{font-size:18px;}
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-  <h1>🔥 UBIQUE — 7 derniers jours</h1>
+  <h1>🔥 UBIQUE — Progression Semaine</h1>
   <button onclick="runSync()">Sync & Afficher</button>
-  <canvas id="chart" height="120"></canvas>
+  <canvas id="chart"></canvas>
 </div>
 
 <script>
 
+// 🔥 Plugin pour afficher total au bout des barres
+const totalPlugin = {
+  id: 'totalPlugin',
+  afterDatasetsDraw(chart){
+    const {ctx} = chart;
+    ctx.save();
+    ctx.fillStyle = "white";
+    ctx.font = "bold 14px sans-serif";
+
+    chart.data.labels.forEach((label,index)=>{
+      let total = 0;
+      chart.data.datasets.forEach(dataset=>{
+        total += dataset.data[index] || 0;
+      });
+
+      const meta = chart.getDatasetMeta(0);
+      const bar = meta.data[index];
+      if(bar){
+        ctx.fillText(
+          total.toFixed(1)+" km",
+          bar.x + 10,
+          bar.y + 4
+        );
+      }
+    });
+
+    ctx.restore();
+  }
+};
+
 async function runSync(){
 
-  // 1️⃣ Lance la sync Netlify
   await fetch("/.netlify/functions/sync-activities");
 
-  // 2️⃣ Récupère les stats semaine
   const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
   const data = await res.json();
-
-  const stats = data.stats;
-  buildChart(stats);
+  buildChart(data.stats);
 }
 
 function buildChart(stats){
 
   const ctx = document.getElementById("chart").getContext("2d");
 
-  // 🔥 7 derniers jours
   const today = new Date();
   const days = [];
-
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(today.getDate() - i);
@@ -93,10 +120,20 @@ function buildChart(stats){
 
   const datasets = days.map((day,index)=>({
     label: day,
-    data: Object.keys(stats).map(athlete =>
-      stats[athlete][day] ? Number(stats[athlete][day].toFixed(2)) : 0
-    ),
-    backgroundColor: colors[index]
+    data: Object.keys(stats).map(athlete => {
+
+      const value = stats[athlete][day];
+
+      if(!value || value === 0){
+        return 0.2; // segment visuel minimal
+      }
+
+      return Number(value.toFixed(2));
+    }),
+    backgroundColor: Object.keys(stats).map(athlete=>{
+      const value = stats[athlete][day];
+      return (!value || value === 0) ? "#2a2f36" : colors[index];
+    })
   }));
 
   new Chart(ctx,{
@@ -109,36 +146,20 @@ function buildChart(stats){
       indexAxis:"y",
       responsive:true,
       plugins:{
-        legend:{
-          labels:{color:"white"}
+        legend:{ labels:{ color:"white" }},
+        tooltip:{
+          callbacks:{
+            label:function(context){
+              if(context.raw === 0.2){
+                return "KM non fait";
+              }
+              return context.raw + " km";
+            }
+          }
         }
       },
       scales:{
         x:{
           stacked:true,
           beginAtZero:true,
-          ticks:{color:"white"},
-          title:{
-            display:true,
-            text:"Kilomètres cumulés (7 jours)",
-            color:"white"
-          }
-        },
-        y:{
-          stacked:true,
-          ticks:{color:"white"},
-          title:{
-            display:true,
-            text:"Athlètes",
-            color:"white"
-          }
-        }
-      }
-    }
-  });
-}
-
-</script>
-
-</body>
-</html>
+          ticks:{color:"
