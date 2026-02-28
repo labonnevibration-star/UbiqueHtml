@@ -6,8 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-*{box-sizing:border-box}
-
 body{
   margin:0;
   height:100vh;
@@ -15,89 +13,41 @@ body{
   justify-content:center;
   align-items:center;
   background:linear-gradient(135deg,#0f172a,#111827);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-family:system-ui;
   color:white;
 }
 
 .card{
   background:#1e293b;
-  padding:55px 45px;
-  border-radius:24px;
+  padding:50px;
+  border-radius:20px;
   width:100%;
-  max-width:420px;
+  max-width:400px;
   text-align:center;
-  box-shadow:0 30px 60px rgba(0,0,0,.5);
-}
-
-.logo{
-  font-size:28px;
-  font-weight:800;
-  margin-bottom:35px;
-  letter-spacing:1px;
 }
 
 input{
   width:100%;
-  padding:16px;
-  border-radius:14px;
+  padding:15px;
+  border-radius:12px;
   border:none;
   background:#0f172a;
   color:white;
   font-size:16px;
+  margin-bottom:20px;
   text-align:center;
-  margin-bottom:20px;
-  outline:none;
-}
-
-.status{
-  min-height:20px;
-  font-size:14px;
-  margin-bottom:20px;
-  color:#94a3b8;
 }
 
 button{
   width:100%;
   padding:16px;
   border:none;
-  border-radius:14px;
+  border-radius:12px;
   font-size:16px;
   font-weight:700;
   cursor:pointer;
-  transition:0.25s ease;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:10px;
-}
-
-.primary{
   background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
-}
-
-.secondary{
-  background:#2f3640;
-  color:white;
-}
-
-button:disabled{
-  opacity:0.6;
-  cursor:not-allowed;
-}
-
-.loader{
-  width:18px;
-  height:18px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-top:2px solid white;
-  border-radius:50%;
-  animation:spin 0.8s linear infinite;
-}
-
-@keyframes spin{
-  0%{transform:rotate(0deg)}
-  100%{transform:rotate(360deg)}
 }
 </style>
 </head>
@@ -105,52 +55,17 @@ button:disabled{
 <body>
 
 <div class="card">
-
-  <div class="logo">🔥 UBIQUE</div>
-
+  <h2>🔥 UBIQUE</h2>
   <input type="email" id="email" placeholder="Ton email">
-
-  <div id="status" class="status"></div>
-
-  <button id="actionBtn" class="primary">
-    Continuer
-  </button>
-
+  <button onclick="go()">Continuer</button>
 </div>
 
 <script>
 
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+function go(){
 
-let isRegistered = false;
-let loading = false;
+  const email = document.getElementById("email").value.trim();
 
-const emailInput = document.getElementById("email");
-const statusText = document.getElementById("status");
-const actionBtn = document.getElementById("actionBtn");
-
-// 🔥 Charger email sauvegardé
-document.addEventListener("DOMContentLoaded", ()=>{
-  const saved = localStorage.getItem("ubique_email");
-  if(saved){
-    emailInput.value = saved;
-    verifyEmail(saved);
-  }
-});
-
-// 🔥 Vérification au blur
-emailInput.addEventListener("blur", ()=>{
-  const email = emailInput.value.trim();
-  if(email){
-    verifyEmail(email);
-  }
-});
-
-// 🔥 Bouton principal
-actionBtn.addEventListener("click", ()=>{
-  if(loading) return;
-
-  const email = emailInput.value.trim();
   if(!email){
     alert("Entre ton email");
     return;
@@ -158,21 +73,13 @@ actionBtn.addEventListener("click", ()=>{
 
   localStorage.setItem("ubique_email", email);
 
-  if(isRegistered){
-    window.location.href = "/dashboard.html";
-  }else{
-    window.location.href =
-      "/.netlify/functions/strava-auth?email=" +
-      encodeURIComponent(email.toLowerCase().trim());
-  }
-});
+  window.location.href =
+    window.location.origin +
+    "/.netlify/functions/strava-auth?email=" +
+    encodeURIComponent(email.toLowerCase().trim());
+}
 
-async function verifyEmail(email){
+</script>
 
-  setLoading(true);
-  isRegistered = false;
-  statusText.textContent = "Vérification...";
-
-  try{
-
-    const emailClean = email.to
+</body>
+</html>
