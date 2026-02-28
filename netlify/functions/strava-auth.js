@@ -1,7 +1,7 @@
 exports.handler = async (event) => {
 
   const qp = event.queryStringParameters || {};
-  const email = qp.email;
+  const email = (qp.email || "").toLowerCase().trim();
 
   if (!email) {
     return {
