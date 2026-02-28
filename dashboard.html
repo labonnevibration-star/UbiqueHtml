@@ -1,162 +1,204 @@
-const SPREADSHEET_ID = "1nTBH8kNMFvC9Y56Rg9ctDwYKfbRh0g8iW9GlmH-0HYA";
-const WRITE_KEY = "UBIQUE_2026_SECURE";
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>UBIQUE Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+body{
+  margin:0;
+  background:#0b0f14;
+  color:white;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:20px;
+}
+.container{
+  max-width:1100px;
+  margin:auto;
+}
+h1{
+  font-size:22px;
+  margin-bottom:20px;
+}
+button{
+  padding:14px 20px;
+  background:#f04e23;
+  border:none;
+  border-radius:8px;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+  margin-bottom:30px;
+}
+button:hover{ background:#ff6238; }
+canvas{
+  background:#161b22;
+  border-radius:12px;
+  padding:20px;
+}
+</style>
+</head>
 
-function doPost(e) {
-  try {
-    const data = JSON.parse(e.postData.contents);
+<body>
 
-    if (data.key !== WRITE_KEY) {
-      return json_(401, { ok: false, error: "unauthorized" });
-    }
+<div class="container">
+  <h1>🔥 UBIQUE — 7 derniers jours</h1>
+  <button onclick="runSync()">Sync & Afficher</button>
+  <canvas id="chart"></canvas>
+</div>
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+<script>
 
-    if (data.mode === "saveActivitiesBatch") {
+let chartInstance = null;
 
-      let sheet = ss.getSheetByName("Activities");
+// 🔥 Affiche total au bout des barres
+const totalPlugin = {
+  id:'totalPlugin',
+  afterDatasetsDraw(chart){
+    const {ctx} = chart;
+    ctx.save();
+    ctx.fillStyle="white";
+    ctx.font="bold 13px sans-serif";
 
-      if (!sheet) {
-        sheet = ss.insertSheet("Activities");
-        sheet.appendRow(["email","athlete_id","activity_id","date","distance_km"]);
+    chart.data.labels.forEach((label,i)=>{
+      let total=0;
+      chart.data.datasets.forEach(ds=>{
+        total += ds.data[i] || 0;
+      });
+
+      const meta = chart.getDatasetMeta(0);
+      if(meta.data[i]){
+        ctx.fillText(
+          total.toFixed(1)+" km",
+          meta.data[i].x + 10,
+          meta.data[i].y + 4
+        );
       }
+    });
 
-      const lastRow = sheet.getLastRow();
+    ctx.restore();
+  }
+};
 
-      const existingIds = lastRow > 1
-        ? new Set(sheet.getRange(2,3,lastRow-1,1).getValues().flat())
-        : new Set();
+async function runSync(){
 
-      const rows = [];
+  // Lance sync Netlify
+  await fetch("/.netlify/functions/sync-activities");
 
-      for (const act of data.activities) {
-        if (!existingIds.has(act.activity_id)) {
-          rows.push([
-            act.email,
-            act.athlete_id,
-            act.activity_id,
-            act.date,
-            act.distance_km
-          ]);
+  // Récupère stats
+  const res = await fetch("https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats");
+  const data = await res.json();
+
+  if(!data.stats){
+    alert("Erreur récupération stats");
+    return;
+  }
+
+  buildChart(data.stats);
+}
+
+function buildChart(stats){
+
+  if(chartInstance){
+    chartInstance.destroy();
+  }
+
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  const athletes = Object.keys(stats);
+  if(athletes.length === 0){
+    alert("Aucune donnée");
+    return;
+  }
+
+  // 🔥 Construire 7 derniers jours
+  const today = new Date();
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();
+    d.setDate(today.getDate()-i);
+    days.push(d.toISOString().slice(0,10));
+  }
+
+  const colors=[
+    "#f04e23",
+    "#ff7a45",
+    "#ff9b63",
+    "#ffb580",
+    "#ffc89c",
+    "#ffd8b5",
+    "#ffe6cc"
+  ];
+
+  const datasets = days.map((day,index)=>{
+
+    return {
+      label:day,
+      data: athletes.map(a=>{
+        const val = stats[a][day];
+        if(!val || val===0){
+          return 0.2; // segment visible
+        }
+        return Number(val.toFixed(2));
+      }),
+      backgroundColor: athletes.map(a=>{
+        const val = stats[a][day];
+        return (!val || val===0) ? "#2a2f36" : colors[index];
+      })
+    };
+  });
+
+  chartInstance = new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:athletes,
+      datasets:datasets
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true,
+      plugins:{
+        legend:{ labels:{ color:"white" }},
+        tooltip:{
+          callbacks:{
+            label:function(context){
+              if(context.raw===0.2){
+                return "KM non fait";
+              }
+              return context.raw+" km";
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          stacked:true,
+          beginAtZero:true,
+          ticks:{color:"white"},
+          title:{
+            display:true,
+            text:"Kilomètres cumulés",
+            color:"white"
+          }
+        },
+        y:{
+          stacked:true,
+          ticks:{color:"white"},
+          title:{
+            display:true,
+            text:"Athlètes",
+            color:"white"
+          }
         }
       }
-
-      if (rows.length > 0) {
-        sheet.getRange(lastRow + 1, 1, rows.length, 5).setValues(rows);
-      }
-
-      return json_(200, { ok: true, inserted: rows.length });
-    }
-
-    return json_(200, { ok: true });
-
-  } catch (err) {
-    return json_(500, { ok: false, error: String(err) });
-  }
+    },
+    plugins:[totalPlugin]
+  });
 }
 
+</script>
 
-
-function doGet(e) {
-  try {
-
-    const mode = e.parameter.mode;
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-    // 🔥 GET ATHLETES
-    if (mode === "getAthletes") {
-
-      const sheet = ss.getSheetByName("Athletes");
-      if (!sheet) return json_(200, { athletes: [] });
-
-      const data = sheet.getDataRange().getValues();
-      data.shift(); // remove header
-
-      const athletes = data.map(row => ({
-        email: row[0],
-        handle: row[1],
-        athlete_id: row[2],
-        refresh_token: row[3]
-      }));
-
-      return json_(200, { athletes });
-    }
-
-
-    // 🔥 GET WEEKLY STATS
-    if (mode === "getWeeklyStats") {
-
-      const activitiesSheet = ss.getSheetByName("Activities");
-      const athletesSheet = ss.getSheetByName("Athletes");
-
-      if (!activitiesSheet || !athletesSheet)
-        return json_(200, { stats: {} });
-
-      const activities = activitiesSheet.getDataRange().getValues();
-      const athletesData = athletesSheet.getDataRange().getValues();
-
-      activities.shift();
-      athletesData.shift();
-
-      const handleMap = {};
-      athletesData.forEach(row => {
-        handleMap[row[2]] = row[1]; // athlete_id -> handle
-      });
-
-      // 🔥 Calcul des 7 derniers jours
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      const days = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        days.push(d.toISOString().slice(0,10));
-      }
-
-      const result = {};
-
-      // Initialiser structure
-      Object.values(handleMap).forEach(handle => {
-        result[handle] = {};
-        days.forEach(day => {
-          result[handle][day] = 0;
-        });
-      });
-
-      // Ajouter distances
-      activities.forEach(row => {
-
-        const athlete_id = row[1];
-        const date = new Date(row[3]);
-        date.setHours(0,0,0,0);
-
-        const dayKey = date.toISOString().slice(0,10);
-
-        if (!days.includes(dayKey)) return;
-
-        const distance = Number(row[4]) || 0;
-        const handle = handleMap[athlete_id];
-
-        if (!handle) return;
-
-        result[handle][dayKey] += distance;
-      });
-
-      return json_(200, { stats: result });
-    }
-
-    return json_(200, { ok: true });
-
-  } catch (err) {
-    return json_(500, { ok: false, error: String(err) });
-  }
-}
-
-
-
-function json_(status, obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify({ status, ...obj }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+</body>
+</html>
