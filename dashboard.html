@@ -9,7 +9,7 @@
 <style>
 body{
   margin:0;
-  background:#0f141a;
+  background:#0d1117;
   color:white;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   padding:20px;
@@ -24,7 +24,7 @@ h1{
 }
 button{
   padding:14px 22px;
-  background:linear-gradient(90deg,#ff512f,#dd2476);
+  background:linear-gradient(90deg,#ff512f,#ff9966);
   border:none;
   border-radius:8px;
   color:white;
@@ -32,13 +32,14 @@ button{
   cursor:pointer;
   margin-bottom:35px;
 }
-button:hover{
-  opacity:0.9;
-}
+button:hover{ opacity:0.9; }
 canvas{
-  background:#151b22;
+  background:#161b22;
   border-radius:14px;
   padding:20px;
+}
+@media(max-width:768px){
+  h1{font-size:18px;}
 }
 </style>
 </head>
@@ -66,16 +67,18 @@ const totalPlugin = {
     chart.data.labels.forEach((label,i)=>{
       let total=0;
       chart.data.datasets.forEach(ds=>{
-        const val = ds.realData[i] || 0;
-        total += val;
+        total += ds.realData[i] || 0;
       });
 
       const meta = chart.getDatasetMeta(0);
-      if(meta.data[i]){
+      const bar = meta.data[i];
+
+      if(bar){
+        ctx.textAlign="center";
         ctx.fillText(
           total.toFixed(1)+" km",
-          meta.data[i].x - 15,
-          meta.data[i].y - 10
+          bar.x,
+          bar.y - 8
         );
       }
     });
@@ -113,12 +116,12 @@ function buildChart(stats){
 
   const colors=[
     "#ff512f",
-    "#ff6a3d",
-    "#ff814a",
-    "#ff9658",
-    "#ffaa66",
-    "#ffbd75",
-    "#ffd184"
+    "#ff6f3c",
+    "#ff8b49",
+    "#ffa256",
+    "#ffb864",
+    "#ffc672",
+    "#ffd480"
   ];
 
   const datasets = days.map((day,index)=>{
@@ -132,8 +135,8 @@ function buildChart(stats){
       realData.push(val);
 
       if(val===0){
-        displayData.push(1); // segment visible
-        bgColors.push("#2f3640");
+        displayData.push(0.5); // segment discret
+        bgColors.push("#2b313a");
       }else{
         displayData.push(Number(val.toFixed(2)));
         bgColors.push(colors[index]);
@@ -173,27 +176,30 @@ function buildChart(stats){
       scales:{
         x:{
           stacked:true,
-          ticks:{color:"white"},
-          title:{
-            display:true,
-            text:"Athlètes",
-            color:"white"
-          }
+          ticks:{color:"white"}
         },
         y:{
           stacked:true,
           beginAtZero:true,
           ticks:{color:"white"},
-          title:{
-            display:true,
-            text:"Kilomètres cumulés",
-            color:"white"
-          }
+          suggestedMax: calculateSuggestedMax(stats)
         }
       }
     },
     plugins:[totalPlugin]
   });
+}
+
+function calculateSuggestedMax(stats){
+  let maxTotal = 0;
+
+  Object.values(stats).forEach(days=>{
+    let total=0;
+    Object.values(days).forEach(val=> total+=val);
+    if(total>maxTotal) maxTotal=total;
+  });
+
+  return Math.ceil(maxTotal * 1.2);
 }
 
 </script>
