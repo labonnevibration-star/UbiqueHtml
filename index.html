@@ -21,16 +21,22 @@ body{
   padding:40px;
   border-radius:16px;
   width:100%;
-  max-width:400px;
+  max-width:420px;
   text-align:center;
+  box-shadow:0 15px 40px rgba(0,0,0,.4);
+}
+h1{
+  margin-bottom:25px;
 }
 input{
   width:100%;
-  padding:12px;
-  margin-bottom:20px;
-  border-radius:8px;
+  padding:14px;
+  border-radius:10px;
   border:none;
   font-size:16px;
+  margin-bottom:20px;
+  background:#0d1117;
+  color:white;
 }
 button{
   width:100%;
@@ -38,12 +44,16 @@ button{
   border:none;
   border-radius:10px;
   font-weight:bold;
-  cursor:pointer;
   font-size:16px;
+  cursor:pointer;
+  transition:0.2s ease;
 }
 .primary{
   background:linear-gradient(90deg,#ff512f,#dd2476);
   color:white;
+}
+.primary:hover{
+  transform:scale(1.03);
 }
 .secondary{
   background:#2f3640;
@@ -52,6 +62,11 @@ button{
 .hidden{
   display:none;
 }
+.status{
+  margin-bottom:15px;
+  font-size:14px;
+  color:#8b949e;
+}
 </style>
 </head>
 
@@ -59,25 +74,15 @@ button{
 
 <div class="card">
 
-  <h2>🔥 UBIQUE</h2>
+  <h1>🔥 UBIQUE</h1>
 
   <input type="email" id="email" placeholder="Ton email">
 
-  <button class="primary" onclick="checkAthlete()">Continuer</button>
+  <div id="status" class="status"></div>
 
-  <div id="dashboardBtn" class="hidden">
-    <br>
-    <button class="primary" onclick="goDashboard()">
-      Accéder au Dashboard
-    </button>
-  </div>
-
-  <div id="signupBtn" class="hidden">
-    <br>
-    <button class="secondary" onclick="goSignup()">
-      S'inscrire au challenge
-    </button>
-  </div>
+  <button id="actionBtn" class="primary" onclick="handleAction()">
+    Continuer
+  </button>
 
 </div>
 
@@ -85,45 +90,76 @@ button{
 
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 
-let currentEmail = "";
+let isRegistered = false;
 
-async function checkAthlete(){
+const emailInput = document.getElementById("email");
+const statusText = document.getElementById("status");
+const actionBtn = document.getElementById("actionBtn");
 
-  const email = document.getElementById("email").value.trim();
-
-  if(!email){
-    alert("Entre ton email");
-    return;
+// 🔥 Auto load email si déjà sauvegardé
+document.addEventListener("DOMContentLoaded", ()=>{
+  const saved = localStorage.getItem("ubique_email");
+  if(saved){
+    emailInput.value = saved;
+    checkRegistration(saved);
   }
+});
 
-  currentEmail = email;
+// 🔥 Vérification auto après saisie
+emailInput.addEventListener("blur", ()=>{
+  const email = emailInput.value.trim();
+  if(email){
+    checkRegistration(email);
+  }
+});
+
+async function checkRegistration(email){
+
+  statusText.textContent = "Vérification...";
+  isRegistered = false;
 
   try{
     const res = await fetch(GS_URL + "?mode=getAthletes");
     const data = await res.json();
     const athletes = data.athletes || [];
 
-    const found = athletes.find(a => a.email.toLowerCase() === email.toLowerCase());
+    const found = athletes.find(a =>
+      a.email.toLowerCase() === email.toLowerCase()
+    );
 
     if(found){
-      document.getElementById("dashboardBtn").classList.remove("hidden");
-      document.getElementById("signupBtn").classList.add("hidden");
+      isRegistered = true;
+      statusText.textContent = "Athlète déjà inscrit ✅";
+      actionBtn.textContent = "Accéder au Dashboard";
+      actionBtn.className = "primary";
     }else{
-      document.getElementById("signupBtn").classList.remove("hidden");
-      document.getElementById("dashboardBtn").classList.add("hidden");
+      isRegistered = false;
+      statusText.textContent = "Nouveau participant";
+      actionBtn.textContent = "S'inscrire au challenge";
+      actionBtn.className = "secondary";
     }
 
   }catch(e){
-    alert("Erreur serveur");
+    statusText.textContent = "Erreur serveur";
   }
 }
 
-function goDashboard(){
-  window.location.href = "/dashboard.html";
-}
+function handleAction(){
 
-function goSignup(){
-  window.location.href = "/signup.html";
+  const email = emailInput.value.trim();
+
+  if(!email){
+    alert("Entre ton email");
+    return;
+  }
+
+  localStorage.setItem("ubique_email", email);
+
+  if(isRegistered){
+    window.location.href = "/dashboard.html";
+  }else{
+    window.location.href = "/signup.html?email=" + encodeURIComponent(email);
+  }
 }
 
 </script>
