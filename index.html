@@ -61,7 +61,6 @@ input{
   font-size:14px;
   margin-bottom:25px;
   color:var(--muted);
-  transition:.2s;
 }
 
 button{
@@ -167,14 +166,12 @@ btnCheck.addEventListener("click", async ()=>{
 
     const res = await fetch(GS_URL + "?mode=getAthletes");
     const data = await res.json();
-
     const athletes = Array.isArray(data.athletes) ? data.athletes : [];
 
     const found = athletes.find(a =>
       (a.email || "").toLowerCase().trim() === email
     );
 
-    // 🔥 NOUVEAU
     if(!found){
       statusText.textContent = "Nouvel utilisateur";
       btnSignup.classList.remove("hidden");
@@ -182,7 +179,6 @@ btnCheck.addEventListener("click", async ()=>{
       return;
     }
 
-    // 🔥 EXISTE
     const hasToken =
       found.refresh_token &&
       found.refresh_token.trim() !== "" &&
@@ -198,7 +194,6 @@ btnCheck.addEventListener("click", async ()=>{
       btnConnect.classList.remove("hidden");
     }
 
-    // Bouton premium direct
     btnDirect.classList.remove("hidden");
 
   }catch(e){
@@ -209,23 +204,23 @@ btnCheck.addEventListener("click", async ()=>{
 });
 
 
-btnDirect.onclick = ()=>{
+/* 🔥 BOUTON CORRIGÉ PROPREMENT */
+function goToStravaAuth(){
+
   const email = emailInput.value.trim().toLowerCase();
-  if(!email) return alert("Entre ton email");
+
+  if(!email){
+    alert("Entre ton email");
+    return;
+  }
 
   window.location.href =
-    window.location.origin +
     "/.netlify/functions/strava-auth?email=" +
     encodeURIComponent(email);
-};
+}
 
-btnConnect.onclick = ()=>{
-  const email = emailInput.value.trim().toLowerCase();
-  window.location.href =
-    window.location.origin +
-    "/.netlify/functions/strava-auth?email=" +
-    encodeURIComponent(email);
-};
+btnDirect.onclick = goToStravaAuth;
+btnConnect.onclick = goToStravaAuth;
 
 btnDashboard.onclick = ()=>{
   window.location.href = "/dashboard.html";
