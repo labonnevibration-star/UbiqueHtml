@@ -4,19 +4,45 @@ let chartInstance = null;
 const OBJECTIF_JOUR = 1;
 const JOURS = 7;
 
+window.onload = () => {
+  runSync();
+};
+
 async function runSync() {
 
-  await fetch("/.netlify/functions/sync-activities");
+  try {
 
-  const res = await fetch(
-    "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats"
-  );
+    console.log("Sync start");
 
-  const data = await res.json();
-  buildChart(data.stats);
+    await fetch("/.netlify/functions/sync-activities");
+
+    const res = await fetch(
+      "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec?mode=getWeeklyStats"
+    );
+
+    const data = await res.json();
+
+    console.log("Stats reçues:", data);
+
+    if (!data.stats || Object.keys(data.stats).length === 0) {
+      alert("Aucune donnée reçue.");
+      return;
+    }
+
+    buildChart(data.stats);
+
+  } catch (err) {
+    console.error(err);
+    alert("Erreur JS: " + err.message);
+  }
 }
 
 function buildChart(stats) {
+
+  if (typeof Chart === "undefined") {
+    alert("Chart.js non chargé.");
+    return;
+  }
 
   if (chartInstance) chartInstance.destroy();
 
@@ -34,7 +60,6 @@ function buildChart(stats) {
 
   const doneData = [];
   const missingData = [];
-  const totals = [];
 
   athletes.forEach(a => {
 
@@ -52,65 +77,13 @@ function buildChart(stats) {
       }
     });
 
-    doneData.push(Number(done.toFixed(2)));
-    missingData.push(Number(missing.toFixed(2)));
-    totals.push(done + missing);
+    doneData.push(done);
+    missingData.push(missing);
   });
 
   const gradient = ctx.createLinearGradient(0, 0, 600, 0);
   gradient.addColorStop(0, "#ff512f");
   gradient.addColorStop(1, "#dd2476");
-
-  const accoladePlugin = {
-    id: "accoladePlugin",
-    afterDatasetsDraw(chart) {
-
-      const { ctx, scales } = chart;
-      ctx.save();
-      ctx.strokeStyle = "white";
-      ctx.fillStyle = "white";
-      ctx.lineWidth = 2;
-      ctx.font = "bold 12px sans-serif";
-
-      athletes.forEach((athlete, i) => {
-
-        const done = doneData[i];
-        if (done === 0) return;
-
-        const y = scales.y.getPixelForValue(i);
-        const xStart = scales.x.getPixelForValue(0);
-        const xEnd = scales.x.getPixelForValue(done);
-
-        // Ligne horizontale accolade
-        ctx.beginPath();
-        ctx.moveTo(xStart, y - 18);
-        ctx.lineTo(xEnd, y - 18);
-        ctx.stroke();
-
-        // Crochet gauche
-        ctx.beginPath();
-        ctx.moveTo(xStart, y - 18);
-        ctx.lineTo(xStart, y - 12);
-        ctx.stroke();
-
-        // Crochet droite
-        ctx.beginPath();
-        ctx.moveTo(xEnd, y - 18);
-        ctx.lineTo(xEnd, y - 12);
-        ctx.stroke();
-
-        // Texte km faits
-        ctx.textAlign = "center";
-        ctx.fillText(
-          done.toFixed(1) + " km",
-          (xStart + xEnd) / 2,
-          y - 24
-        );
-      });
-
-      ctx.restore();
-    }
-  };
 
   chartInstance = new Chart(ctx, {
     type: "bar",
@@ -121,14 +94,12 @@ function buildChart(stats) {
           label: "KM faits",
           data: doneData,
           backgroundColor: gradient,
-          borderRadius: 8,
           stack: "total"
         },
         {
           label: "KM manquants",
           data: missingData,
           backgroundColor: "#2f3640",
-          borderRadius: 8,
           stack: "total"
         }
       ]
@@ -136,38 +107,26 @@ function buildChart(stats) {
     options: {
       indexAxis: "y",
       responsive: true,
-      plugins: {
-        legend: {
-          labels: { color: "white" }
-        },
-        tooltip: {
-          callbacks: {
-            label: function (ctx) {
-              return ctx.dataset.label + " : " + ctx.raw + " km";
-            }
-          }
-        }
-      },
       scales: {
         x: {
           stacked: true,
           beginAtZero: true,
           max: OBJECTIF_JOUR * JOURS,
-          ticks: { color: "white" },
-          title: {
-            display: true,
-            text: "Objectif semaine : " + (OBJECTIF_JOUR * JOURS) + " km",
-            color: "white"
-          }
+          ticks: { color: "white" }
         },
         y: {
           stacked: true,
           ticks: { color: "white" }
         }
+      },
+      plugins: {
+        legend: {
+          labels: { color: "white" }
+        }
       }
-    },
-    plugins: [accoladePlugin]
+    }
   });
+
 }
 
 </script>
