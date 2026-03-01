@@ -1,71 +1,80 @@
 <script>
 
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-const WRITE_KEY = "UBIQUE_2026_SECURE";
+document.addEventListener("DOMContentLoaded", () => {
 
-const params = new URLSearchParams(window.location.search);
-const email = params.get("email");
+  const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+  const WRITE_KEY = "UBIQUE_2026_SECURE";
 
-if(!email){
-  window.location.href = "/";
-}
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email");
 
-document.getElementById("email").value = email;
-
-async function createProfile(){
-
-  const firstName = document.getElementById("firstName").value.trim();
-  const lastName = document.getElementById("lastName").value.trim();
-  const handle = document.getElementById("handle").value.trim();
+  const emailInput = document.getElementById("email");
   const status = document.getElementById("status");
 
-  if(!firstName || !lastName || !handle){
-    alert("Remplis tous les champs");
+  if(!email){
+    status.textContent = "Email manquant. Retourne à l'accueil.";
+    status.style.color = "#ef4444";
     return;
   }
 
-  status.textContent = "Création du profil...";
-  status.style.color = "#94a3b8";
+  emailInput.value = email;
 
-  try{
+  window.createProfile = async function(){
 
-    const response = await fetch(GS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        key: WRITE_KEY,
-        mode: "createAthlete",
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        handle: handle
-      })
-    });
+    const firstName = document.getElementById("firstName").value.trim();
+    const lastName = document.getElementById("lastName").value.trim();
+    const handle = document.getElementById("handle").value.trim();
 
-    if(!response.ok){
-      throw new Error("HTTP error " + response.status);
+    if(!firstName || !lastName || !handle){
+      alert("Remplis tous les champs");
+      return;
     }
 
-    const result = await response.json();
+    status.textContent = "Création du profil...";
+    status.style.color = "#94a3b8";
 
-    if(result.ok !== true){
-      throw new Error("Server returned invalid response");
+    try{
+
+      const response = await fetch(GS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: WRITE_KEY,
+          mode: "createAthlete",
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          handle: handle
+        })
+      });
+
+      if(!response.ok){
+        throw new Error("HTTP error " + response.status);
+      }
+
+      const result = await response.json();
+
+      if(result.ok !== true){
+        throw new Error("Apps Script returned invalid response");
+      }
+
+      status.textContent = "Profil créé ✔ Redirection...";
+      status.style.color = "#22c55e";
+
+      setTimeout(()=>{
+        window.location.href =
+          "/connect.html?email=" +
+          encodeURIComponent(email);
+      }, 800);
+
+    }catch(e){
+      console.error("SIGNUP ERROR:", e);
+      status.textContent = "Erreur serveur.";
+      status.style.color = "#ef4444";
     }
 
-    status.textContent = "Profil créé ✔ Redirection vers Strava...";
-    status.style.color = "#22c55e";
+  };
 
-    setTimeout(()=>{
-      window.location.href =
-        "/connect.html?email=" +
-        encodeURIComponent(email);
-    }, 800);
-
-  }catch(e){
-    console.error("SIGNUP ERROR:", e);
-    status.textContent = "Erreur serveur. Vérifie Apps Script.";
-    status.style.color = "#ef4444";
-  }
-}
+});
 
 </script>
