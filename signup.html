@@ -17,6 +17,8 @@
   --error:#ef4444;
 }
 
+*{box-sizing:border-box}
+
 body{
   margin:0;
   height:100vh;
@@ -24,23 +26,30 @@ body{
   justify-content:center;
   align-items:center;
   background:linear-gradient(135deg,#0f172a,#111827);
-  font-family:system-ui;
+  font-family:system-ui,-apple-system;
   color:var(--text);
 }
 
 .card{
   width:100%;
-  max-width:460px;
-  padding:60px 40px;
-  border-radius:22px;
+  max-width:480px;
+  padding:60px 45px;
+  border-radius:24px;
   background:var(--card);
   box-shadow:0 40px 80px rgba(0,0,0,.6);
   text-align:center;
+  animation:fade .4s ease;
+}
+
+@keyframes fade{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
 }
 
 h1{
-  margin-bottom:30px;
-  font-size:24px;
+  margin-bottom:35px;
+  font-size:26px;
+  letter-spacing:.5px;
 }
 
 input{
@@ -53,6 +62,12 @@ input{
   font-size:16px;
   text-align:center;
   margin-bottom:15px;
+  outline:none;
+  transition:.2s;
+}
+
+input:focus{
+  background:#111827;
 }
 
 button{
@@ -63,15 +78,25 @@ button{
   font-size:15px;
   font-weight:700;
   cursor:pointer;
-  margin-top:10px;
+  margin-top:20px;
   background:linear-gradient(90deg,var(--accent1),var(--accent2));
   color:white;
+  transition:.25s;
+}
+
+button:hover{
+  transform:translateY(-2px);
+}
+
+button.loading{
+  opacity:.6;
+  pointer-events:none;
 }
 
 .status{
-  margin-top:15px;
+  margin-top:20px;
   font-size:14px;
-  min-height:20px;
+  min-height:24px;
   color:var(--muted);
 }
 </style>
@@ -84,7 +109,7 @@ button{
   <input type="text" id="firstName" placeholder="Prénom">
   <input type="text" id="lastName" placeholder="Nom">
   <input type="email" id="email" readonly>
-  <input type="text" id="handle" placeholder="Pseudo">
+  <input type="text" id="handle" placeholder="Pseudo (classement)">
 
   <button id="btnCreate">Continuer vers Strava</button>
 
@@ -98,7 +123,6 @@ const WRITE_KEY = "UBIQUE_2026_SECURE";
 
 document.addEventListener("DOMContentLoaded", function(){
 
-  // 🔥 récupère email depuis URL
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
 
@@ -109,12 +133,14 @@ document.addEventListener("DOMContentLoaded", function(){
 
   document.getElementById("email").value = email.toLowerCase();
 
-  document.getElementById("btnCreate").addEventListener("click", async function(){
+  const btn = document.getElementById("btnCreate");
+  const status = document.getElementById("status");
+
+  btn.addEventListener("click", async function(){
 
     const firstName = document.getElementById("firstName").value.trim();
     const lastName  = document.getElementById("lastName").value.trim();
     const handle    = document.getElementById("handle").value.trim();
-    const status    = document.getElementById("status");
 
     if(!firstName || !lastName || !handle){
       status.style.color = "#ef4444";
@@ -122,12 +148,13 @@ document.addEventListener("DOMContentLoaded", function(){
       return;
     }
 
-    status.textContent = "Création du profil...";
+    btn.classList.add("loading");
     status.style.color = "#94a3b8";
+    status.textContent = "Création du profil...";
 
     try{
 
-      const res = await fetch(GS_URL,{
+      const response = await fetch(GS_URL,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
@@ -140,26 +167,32 @@ document.addEventListener("DOMContentLoaded", function(){
         })
       });
 
-      const json = await res.json();
-
-      if(json.ok !== true){
-        throw new Error("Erreur Apps Script");
+      if(!response.ok){
+        throw new Error("HTTP error " + response.status);
       }
 
-      status.textContent = "Profil créé ✔ Redirection...";
-      status.style.color = "#22c55e";
+      const result = await response.json();
 
-      // 🔥 Redirection vers Strava
+      if(result.ok !== true){
+        throw new Error("Apps Script rejected");
+      }
+
+      status.style.color = "#22c55e";
+      status.textContent = "Profil créé ✔ Redirection vers Strava...";
+
       setTimeout(()=>{
         window.location.href =
           "/.netlify/functions/strava-auth?email=" +
-          encodeURIComponent(email.toLowerCase());
+          encodeURIComponent(email.toLowerCase()) +
+          "&handle=" +
+          encodeURIComponent(handle);
       },800);
 
     }catch(e){
-      console.error(e);
-      status.textContent = "Erreur serveur.";
+      console.error("SIGNUP ERROR:", e);
       status.style.color = "#ef4444";
+      status.textContent = "Erreur serveur. Vérifie Apps Script.";
+      btn.classList.remove("loading");
     }
 
   });
