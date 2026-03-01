@@ -1,112 +1,171 @@
-<script>
-/** ✅ À REMPLACER si tu changes d'URL Apps Script */
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>UBIQUE — Création profil</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-/** ✅ Doit matcher exactement WRITE_KEY côté Apps Script */
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --accent1:#ff512f;
+  --accent2:#dd2476;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --success:#22c55e;
+  --error:#ef4444;
+}
+
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#0f172a,#111827);
+  font-family:system-ui;
+  color:var(--text);
+}
+
+.card{
+  width:100%;
+  max-width:460px;
+  padding:60px 40px;
+  border-radius:22px;
+  background:var(--card);
+  box-shadow:0 40px 80px rgba(0,0,0,.6);
+  text-align:center;
+}
+
+h1{
+  margin-bottom:30px;
+  font-size:24px;
+}
+
+input{
+  width:100%;
+  padding:16px;
+  border-radius:14px;
+  border:none;
+  background:#0f172a;
+  color:white;
+  font-size:16px;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+button{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:14px;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  margin-top:10px;
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;
+}
+
+.status{
+  margin-top:15px;
+  font-size:14px;
+  min-height:20px;
+  color:var(--muted);
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔥 Créer ton profil</h1>
+
+  <input type="text" id="firstName" placeholder="Prénom">
+  <input type="text" id="lastName" placeholder="Nom">
+  <input type="email" id="email" readonly>
+  <input type="text" id="handle" placeholder="Pseudo">
+
+  <button id="btnCreate">Continuer vers Strava</button>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script>
+
+const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 const WRITE_KEY = "UBIQUE_2026_SECURE";
 
-/**
- * Attend:
- *  - input#firstName
- *  - input#lastName
- *  - input#email   (readOnly OK)
- *  - input#handle
- *  - button#btnCreate
- *  - div#status
- */
-document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("btnCreate");
-  if (!btn) return;
+document.addEventListener("DOMContentLoaded", function(){
 
-  btn.addEventListener("click", createProfileAndGoStrava);
-});
+  // 🔥 récupère email depuis URL
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email");
 
-async function createProfileAndGoStrava() {
-  const btn = document.getElementById("btnCreate");
-  const status = document.getElementById("status");
-
-  const firstName = (document.getElementById("firstName")?.value || "").trim();
-  const lastName  = (document.getElementById("lastName")?.value || "").trim();
-  const email     = (document.getElementById("email")?.value || "").trim().toLowerCase();
-  const handle    = (document.getElementById("handle")?.value || "").trim();
-
-  if (!firstName || !lastName || !email || !handle) {
-    if (status) {
-      status.textContent = "Remplis tous les champs.";
-      status.style.color = "#ef4444";
-    } else {
-      alert("Remplis tous les champs.");
-    }
+  if(!email){
+    window.location.href = "/";
     return;
   }
 
-  // UI loading
-  if (btn) {
-    btn.disabled = true;
-    btn.classList.add("loading");
-    btn.textContent = "Création…";
-  }
-  if (status) {
-    status.textContent = "Création du profil dans Google Sheet…";
-    status.style.color = "#94a3b8";
-  }
+  document.getElementById("email").value = email.toLowerCase();
 
-  try {
-    // 1) Create athlete row (Apps Script)
-    const res = await fetch(GS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        key: WRITE_KEY,
-        mode: "createAthlete",
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        handle,
-        created_at: new Date().toISOString()
-      })
-    });
+  document.getElementById("btnCreate").addEventListener("click", async function(){
 
-    const text = await res.text();
+    const firstName = document.getElementById("firstName").value.trim();
+    const lastName  = document.getElementById("lastName").value.trim();
+    const handle    = document.getElementById("handle").value.trim();
+    const status    = document.getElementById("status");
 
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      throw new Error("Apps Script n'a pas renvoyé du JSON: " + text.slice(0, 120));
-    }
-
-    if (!res.ok || json.ok !== true) {
-      throw new Error("Apps Script error: " + JSON.stringify(json).slice(0, 220));
-    }
-
-    if (status) {
-      status.textContent = "OK ✔ Redirection vers Strava…";
-      status.style.color = "#22c55e";
-    }
-
-    // 2) Redirect to Strava auth (Netlify function)
-    // ✅ IMPORTANT: ton strava-auth DOIT accepter email + handle en query
-    const url =
-      "/.netlify/functions/strava-auth" +
-      "?email=" + encodeURIComponent(email) +
-      "&handle=" + encodeURIComponent(handle);
-
-    window.location.href = url;
-
-  } catch (err) {
-    console.error(err);
-    if (status) {
-      status.textContent = "Erreur: " + (err?.message || err);
+    if(!firstName || !lastName || !handle){
       status.style.color = "#ef4444";
-    } else {
-      alert("Erreur: " + (err?.message || err));
+      status.textContent = "Remplis tous les champs.";
+      return;
     }
-    if (btn) {
-      btn.disabled = false;
-      btn.classList.remove("loading");
-      btn.textContent = "Continuer vers Strava";
+
+    status.textContent = "Création du profil...";
+    status.style.color = "#94a3b8";
+
+    try{
+
+      const res = await fetch(GS_URL,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          key:WRITE_KEY,
+          mode:"createAthlete",
+          email:email.toLowerCase(),
+          first_name:firstName,
+          last_name:lastName,
+          handle:handle
+        })
+      });
+
+      const json = await res.json();
+
+      if(json.ok !== true){
+        throw new Error("Erreur Apps Script");
+      }
+
+      status.textContent = "Profil créé ✔ Redirection...";
+      status.style.color = "#22c55e";
+
+      // 🔥 Redirection vers Strava
+      setTimeout(()=>{
+        window.location.href =
+          "/.netlify/functions/strava-auth?email=" +
+          encodeURIComponent(email.toLowerCase());
+      },800);
+
+    }catch(e){
+      console.error(e);
+      status.textContent = "Erreur serveur.";
+      status.style.color = "#ef4444";
     }
-  }
-}
+
+  });
+
+});
 </script>
+
+</body>
+</html>
