@@ -1,103 +1,8 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>UBIQUE — Création profil</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-:root{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --accent1:#ff512f;
-  --accent2:#dd2476;
-  --text:#e2e8f0;
-  --muted:#94a3b8;
-}
-
-*{box-sizing:border-box}
-
-body{
-  margin:0;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:linear-gradient(135deg,#0f172a,#111827);
-  font-family:system-ui;
-  color:var(--text);
-}
-
-.card{
-  width:100%;
-  max-width:460px;
-  padding:60px 45px;
-  border-radius:22px;
-  background:var(--card);
-  box-shadow:0 40px 80px rgba(0,0,0,.6);
-  text-align:center;
-}
-
-h1{
-  margin-bottom:30px;
-  font-size:24px;
-}
-
-input{
-  width:100%;
-  padding:16px;
-  border-radius:14px;
-  border:none;
-  background:#0f172a;
-  color:white;
-  font-size:16px;
-  text-align:center;
-  margin-bottom:15px;
-  outline:none;
-}
-
-button{
-  width:100%;
-  padding:16px;
-  border:none;
-  border-radius:14px;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  margin-top:10px;
-  background:linear-gradient(90deg,var(--accent1),var(--accent2));
-  color:white;
-}
-
-.status{
-  margin-top:15px;
-  font-size:14px;
-  color:var(--muted);
-  min-height:20px;
-}
-</style>
-</head>
-<body>
-
-<div class="card">
-  <h1>Créer ton profil</h1>
-
-  <input type="text" id="firstName" placeholder="Prénom">
-  <input type="text" id="lastName" placeholder="Nom">
-  <input type="email" id="email" readonly>
-  <input type="text" id="handle" placeholder="Pseudo (affiché dans le classement)">
-
-  <button onclick="createProfile()">Continuer vers Strava</button>
-
-  <div id="status" class="status"></div>
-</div>
-
 <script>
 
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
 const WRITE_KEY = "UBIQUE_2026_SECURE";
 
-// 🔥 Pré-remplir email depuis URL
 const params = new URLSearchParams(window.location.search);
 const email = params.get("email");
 
@@ -120,10 +25,11 @@ async function createProfile(){
   }
 
   status.textContent = "Création du profil...";
+  status.style.color = "#94a3b8";
 
   try{
 
-    await fetch(GS_URL, {
+    const response = await fetch(GS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -136,17 +42,30 @@ async function createProfile(){
       })
     });
 
-    // 🔥 Redirection vers connexion Strava
-    window.location.href =
-      "/connect.html?email=" +
-      encodeURIComponent(email);
+    if(!response.ok){
+      throw new Error("HTTP error " + response.status);
+    }
+
+    const result = await response.json();
+
+    if(result.ok !== true){
+      throw new Error("Server returned invalid response");
+    }
+
+    status.textContent = "Profil créé ✔ Redirection vers Strava...";
+    status.style.color = "#22c55e";
+
+    setTimeout(()=>{
+      window.location.href =
+        "/connect.html?email=" +
+        encodeURIComponent(email);
+    }, 800);
 
   }catch(e){
-    status.textContent = "Erreur serveur.";
+    console.error("SIGNUP ERROR:", e);
+    status.textContent = "Erreur serveur. Vérifie Apps Script.";
+    status.style.color = "#ef4444";
   }
 }
 
 </script>
-
-</body>
-</html>
