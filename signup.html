@@ -118,9 +118,6 @@ button.loading{
 
 <script>
 
-const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-const WRITE_KEY = "UBIQUE_2026_SECURE";
-
 document.addEventListener("DOMContentLoaded", function(){
 
   const params = new URLSearchParams(window.location.search);
@@ -154,12 +151,10 @@ document.addEventListener("DOMContentLoaded", function(){
 
     try{
 
-      const response = await fetch(GS_URL,{
+      const response = await fetch("/.netlify/functions/create-athlete",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
-          key:WRITE_KEY,
-          mode:"createAthlete",
           email:email.toLowerCase(),
           first_name:firstName,
           last_name:lastName,
@@ -167,31 +162,25 @@ document.addEventListener("DOMContentLoaded", function(){
         })
       });
 
-      if(!response.ok){
-        throw new Error("HTTP error " + response.status);
-      }
-
       const result = await response.json();
 
       if(result.ok !== true){
-        throw new Error("Apps Script rejected");
+        throw new Error("Backend rejected");
       }
 
       status.style.color = "#22c55e";
-      status.textContent = "Profil créé ✔ Redirection vers Strava...";
+      status.textContent = "Profil créé ✔ Redirection...";
 
       setTimeout(()=>{
         window.location.href =
           "/.netlify/functions/strava-auth?email=" +
-          encodeURIComponent(email.toLowerCase()) +
-          "&handle=" +
-          encodeURIComponent(handle);
+          encodeURIComponent(email.toLowerCase());
       },800);
 
     }catch(e){
-      console.error("SIGNUP ERROR:", e);
+      console.error(e);
       status.style.color = "#ef4444";
-      status.textContent = "Erreur serveur. Vérifie Apps Script.";
+      status.textContent = "Erreur serveur.";
       btn.classList.remove("loading");
     }
 
