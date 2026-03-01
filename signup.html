@@ -1,203 +1,112 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>UBIQUE — Création profil</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-:root{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --accent1:#ff512f;
-  --accent2:#dd2476;
-  --text:#e2e8f0;
-  --muted:#94a3b8;
-  --success:#22c55e;
-  --error:#ef4444;
-}
-
-*{box-sizing:border-box}
-
-body{
-  margin:0;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:linear-gradient(135deg,#0f172a,#111827);
-  font-family:system-ui,-apple-system;
-  color:var(--text);
-}
-
-.card{
-  width:100%;
-  max-width:480px;
-  padding:60px 45px;
-  border-radius:24px;
-  background:var(--card);
-  box-shadow:0 40px 80px rgba(0,0,0,.6);
-  text-align:center;
-  animation:fade .4s ease;
-}
-
-@keyframes fade{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:translateY(0)}
-}
-
-h1{
-  margin-bottom:35px;
-  font-size:26px;
-  letter-spacing:.5px;
-}
-
-input{
-  width:100%;
-  padding:16px;
-  border-radius:14px;
-  border:none;
-  background:#0f172a;
-  color:white;
-  font-size:16px;
-  text-align:center;
-  margin-bottom:15px;
-  outline:none;
-  transition:.2s;
-}
-
-input:focus{
-  background:#111827;
-}
-
-button{
-  width:100%;
-  padding:16px;
-  border:none;
-  border-radius:14px;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  margin-top:15px;
-  transition:.2s;
-  background:linear-gradient(90deg,var(--accent1),var(--accent2));
-  color:white;
-}
-
-button:hover{
-  transform:translateY(-2px);
-}
-
-button.loading{
-  opacity:.6;
-  pointer-events:none;
-}
-
-.status{
-  margin-top:18px;
-  font-size:14px;
-  min-height:22px;
-  color:var(--muted);
-}
-</style>
-</head>
-<body>
-
-<div class="card">
-  <h1>🔥 Créer ton profil</h1>
-
-  <input type="text" id="firstName" placeholder="Prénom">
-  <input type="text" id="lastName" placeholder="Nom">
-  <input type="email" id="email" readonly>
-  <input type="text" id="handle" placeholder="Pseudo (classement)">
-
-  <button id="btnCreate">Continuer vers Strava</button>
-
-  <div id="status" class="status"></div>
-</div>
-
 <script>
-
+/** ✅ À REMPLACER si tu changes d'URL Apps Script */
 const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+
+/** ✅ Doit matcher exactement WRITE_KEY côté Apps Script */
 const WRITE_KEY = "UBIQUE_2026_SECURE";
 
-document.addEventListener("DOMContentLoaded", function(){
+/**
+ * Attend:
+ *  - input#firstName
+ *  - input#lastName
+ *  - input#email   (readOnly OK)
+ *  - input#handle
+ *  - button#btnCreate
+ *  - div#status
+ */
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btnCreate");
+  if (!btn) return;
 
-  const params = new URLSearchParams(window.location.search);
-  const emailParam = params.get("email");
+  btn.addEventListener("click", createProfileAndGoStrava);
+});
 
-  if(!emailParam){
-    window.location.href = "/";
-    return;
-  }
-
-  document.getElementById("email").value = emailParam.toLowerCase();
-
+async function createProfileAndGoStrava() {
   const btn = document.getElementById("btnCreate");
   const status = document.getElementById("status");
 
-  btn.addEventListener("click", async function(){
+  const firstName = (document.getElementById("firstName")?.value || "").trim();
+  const lastName  = (document.getElementById("lastName")?.value || "").trim();
+  const email     = (document.getElementById("email")?.value || "").trim().toLowerCase();
+  const handle    = (document.getElementById("handle")?.value || "").trim();
 
-    const firstName = document.getElementById("firstName").value.trim();
-    const lastName = document.getElementById("lastName").value.trim();
-    const handle = document.getElementById("handle").value.trim();
-    const email = document.getElementById("email").value.trim().toLowerCase();
-
-    if(!firstName || !lastName || !handle){
-      status.style.color = "#ef4444";
+  if (!firstName || !lastName || !email || !handle) {
+    if (status) {
       status.textContent = "Remplis tous les champs.";
-      return;
-    }
-
-    btn.classList.add("loading");
-    status.style.color = "#94a3b8";
-    status.textContent = "Création du profil...";
-
-    try{
-
-      const response = await fetch(GS_URL,{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          key:WRITE_KEY,
-          mode:"createAthlete",
-          email:email,
-          first_name:firstName,
-          last_name:lastName,
-          handle:handle
-        })
-      });
-
-      if(!response.ok){
-        throw new Error("HTTP " + response.status);
-      }
-
-      const result = await response.json();
-
-      if(result.ok !== true){
-        throw new Error("Invalid response");
-      }
-
-      status.style.color = "#22c55e";
-      status.textContent = "Profil créé ✔ Redirection...";
-
-      setTimeout(()=>{
-        window.location.href =
-          "/.netlify/functions/strava-auth?email=" +
-          encodeURIComponent(email);
-      },800);
-
-    }catch(e){
-      console.error(e);
       status.style.color = "#ef4444";
-      status.textContent = "Erreur serveur. Vérifie Apps Script.";
-      btn.classList.remove("loading");
+    } else {
+      alert("Remplis tous les champs.");
+    }
+    return;
+  }
+
+  // UI loading
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add("loading");
+    btn.textContent = "Création…";
+  }
+  if (status) {
+    status.textContent = "Création du profil dans Google Sheet…";
+    status.style.color = "#94a3b8";
+  }
+
+  try {
+    // 1) Create athlete row (Apps Script)
+    const res = await fetch(GS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: WRITE_KEY,
+        mode: "createAthlete",
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        handle,
+        created_at: new Date().toISOString()
+      })
+    });
+
+    const text = await res.text();
+
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error("Apps Script n'a pas renvoyé du JSON: " + text.slice(0, 120));
     }
 
-  });
+    if (!res.ok || json.ok !== true) {
+      throw new Error("Apps Script error: " + JSON.stringify(json).slice(0, 220));
+    }
 
-});
+    if (status) {
+      status.textContent = "OK ✔ Redirection vers Strava…";
+      status.style.color = "#22c55e";
+    }
+
+    // 2) Redirect to Strava auth (Netlify function)
+    // ✅ IMPORTANT: ton strava-auth DOIT accepter email + handle en query
+    const url =
+      "/.netlify/functions/strava-auth" +
+      "?email=" + encodeURIComponent(email) +
+      "&handle=" + encodeURIComponent(handle);
+
+    window.location.href = url;
+
+  } catch (err) {
+    console.error(err);
+    if (status) {
+      status.textContent = "Erreur: " + (err?.message || err);
+      status.style.color = "#ef4444";
+    } else {
+      alert("Erreur: " + (err?.message || err));
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove("loading");
+      btn.textContent = "Continuer vers Strava";
+    }
+  }
+}
 </script>
-
-</body>
-</html>
