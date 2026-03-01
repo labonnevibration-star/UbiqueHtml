@@ -6,79 +6,197 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --accent1:#ff512f;
+  --accent2:#dd2476;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --success:#22c55e;
+  --error:#ef4444;
+}
+
+*{box-sizing:border-box}
+
 body{
   margin:0;
   height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  background:#0f172a;
-  font-family:system-ui;
-  color:white;
+  background:linear-gradient(135deg,#0f172a,#111827);
+  font-family:system-ui,-apple-system;
+  color:var(--text);
 }
+
 .card{
-  width:420px;
-  padding:40px;
-  border-radius:20px;
-  background:#1e293b;
+  width:100%;
+  max-width:480px;
+  padding:60px 45px;
+  border-radius:24px;
+  background:var(--card);
+  box-shadow:0 40px 80px rgba(0,0,0,.6);
   text-align:center;
+  animation:fade .4s ease;
 }
+
+@keyframes fade{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+h1{
+  margin-bottom:35px;
+  font-size:26px;
+  letter-spacing:.5px;
+}
+
 input{
   width:100%;
-  padding:14px;
-  margin-bottom:12px;
-  border-radius:10px;
+  padding:16px;
+  border-radius:14px;
   border:none;
+  background:#0f172a;
+  color:white;
+  font-size:16px;
+  text-align:center;
+  margin-bottom:15px;
+  outline:none;
+  transition:.2s;
 }
+
+input:focus{
+  background:#111827;
+}
+
 button{
   width:100%;
-  padding:14px;
+  padding:16px;
   border:none;
-  border-radius:10px;
-  background:linear-gradient(90deg,#ff512f,#dd2476);
-  color:white;
-  font-weight:bold;
-}
-.status{
+  border-radius:14px;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
   margin-top:15px;
+  transition:.2s;
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;
+}
+
+button:hover{
+  transform:translateY(-2px);
+}
+
+button.loading{
+  opacity:.6;
+  pointer-events:none;
+}
+
+.status{
+  margin-top:18px;
   font-size:14px;
+  min-height:22px;
+  color:var(--muted);
 }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Créer ton profil</h2>
+  <h1>🔥 Créer ton profil</h1>
 
   <input type="text" id="firstName" placeholder="Prénom">
   <input type="text" id="lastName" placeholder="Nom">
-  <input type="email" id="email">
-  <input type="text" id="handle" placeholder="Pseudo">
+  <input type="email" id="email" readonly>
+  <input type="text" id="handle" placeholder="Pseudo (classement)">
 
-  <button onclick="createProfile()">Continuer</button>
+  <button id="btnCreate">Continuer vers Strava</button>
 
   <div id="status" class="status"></div>
 </div>
 
 <script>
 
-window.onload = function(){
+const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
+const WRITE_KEY = "UBIQUE_2026_SECURE";
+
+document.addEventListener("DOMContentLoaded", function(){
 
   const params = new URLSearchParams(window.location.search);
-  const email = params.get("email");
+  const emailParam = params.get("email");
 
-  if(email){
-    document.getElementById("email").value = email;
+  if(!emailParam){
+    window.location.href = "/";
+    return;
   }
 
-}
+  document.getElementById("email").value = emailParam.toLowerCase();
 
-async function createProfile(){
+  const btn = document.getElementById("btnCreate");
+  const status = document.getElementById("status");
 
-  document.getElementById("status").innerText = "Bouton cliqué ✔";
+  btn.addEventListener("click", async function(){
 
-}
+    const firstName = document.getElementById("firstName").value.trim();
+    const lastName = document.getElementById("lastName").value.trim();
+    const handle = document.getElementById("handle").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
 
+    if(!firstName || !lastName || !handle){
+      status.style.color = "#ef4444";
+      status.textContent = "Remplis tous les champs.";
+      return;
+    }
+
+    btn.classList.add("loading");
+    status.style.color = "#94a3b8";
+    status.textContent = "Création du profil...";
+
+    try{
+
+      const response = await fetch(GS_URL,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          key:WRITE_KEY,
+          mode:"createAthlete",
+          email:email,
+          first_name:firstName,
+          last_name:lastName,
+          handle:handle
+        })
+      });
+
+      if(!response.ok){
+        throw new Error("HTTP " + response.status);
+      }
+
+      const result = await response.json();
+
+      if(result.ok !== true){
+        throw new Error("Invalid response");
+      }
+
+      status.style.color = "#22c55e";
+      status.textContent = "Profil créé ✔ Redirection...";
+
+      setTimeout(()=>{
+        window.location.href =
+          "/.netlify/functions/strava-auth?email=" +
+          encodeURIComponent(email);
+      },800);
+
+    }catch(e){
+      console.error(e);
+      status.style.color = "#ef4444";
+      status.textContent = "Erreur serveur. Vérifie Apps Script.";
+      btn.classList.remove("loading");
+    }
+
+  });
+
+});
 </script>
 
 </body>
