@@ -1,123 +1,127 @@
+// netlify/functions/strava-callback.js
 exports.handler = async (event) => {
   try {
-
     const qp = event.queryStringParameters || {};
     const code = qp.code;
-    const stateRaw = qp.state;
+    const stateB64 = qp.state;
 
-    if (!code || !stateRaw) {
-      return {
-        statusCode: 400,
-        body: "Missing code or state"
-      };
-    }
+    if (!code) return { statusCode: 400, body: "Missing code" };
+    if (!stateB64) return { statusCode: 400, body: "Missing state" };
 
-    // 🔥 Decode state
+    // Decode state (email + handle optional)
     let state;
     try {
-      state = JSON.parse(
-        Buffer.from(stateRaw, "base64").toString()
-      );
+      state = JSON.parse(Buffer.from(stateB64, "base64").toString("utf8"));
     } catch (e) {
-      return {
-        statusCode: 400,
-        body: "Invalid state format"
-      };
+      return { statusCode: 400, body: "Invalid state" };
     }
 
-    const email = state.email;
+    const email = (state.email || "").toString().trim().toLowerCase();
+    const handle = (state.handle || "").toString().trim();
 
-    if (!email) {
-      return {
-        statusCode: 400,
-        body: "Missing email in state"
-      };
-    }
+    if (!email) return { statusCode: 400, body: "Missing email in state" };
 
     const client_id = process.env.STRAVA_CLIENT_ID;
     const client_secret = process.env.STRAVA_CLIENT_SECRET;
 
     if (!client_id || !client_secret) {
-      return {
-        statusCode: 500,
-        body: "Missing STRAVA_CLIENT_ID or STRAVA_CLIENT_SECRET"
-      };
+      return { statusCode: 500, body: "Missing STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET" };
     }
 
-    // 1️⃣ Exchange code for tokens
-    const tokenRes = await fetch(
-      "https://www.strava.com/oauth/token",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_id,
-          client_secret,
-          code,
-          grant_type: "authorization_code"
-        })
-      }
-    );
-
-    const tokenData = await tokenRes.json();
-
-    if (!tokenRes.ok) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify(tokenData, null, 2)
-      };
-    }
-
-    // 🔥 Vérifie données Strava
-    if (!tokenData.athlete || !tokenData.refresh_token) {
-      return {
-        statusCode: 500,
-        body: "Invalid token response from Strava"
-      };
-    }
-
-    // 2️⃣ Update Google Sheet
-    const gsRes = await fetch(process.env.GS_WEBAPP_URL, {
+    // 1) Exchange code -> tokens
+    const tokenRes = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        key: process.env.UBIQUE_WRITE_KEY,
-        mode: "updateStravaToken",
-        email: email,
-        athlete_id: tokenData.athlete.id,
-        refresh_token: tokenData.refresh_token
-      })
+        client_id,
+        client_secret,
+        code,
+        grant_type: "authorization_code",
+      }),
     });
 
-    const gsText = await gsRes.text();
+    const tokenText = await tokenRes.text();
+    let tokenData = {};
+    try { tokenData = JSON.parse(tokenText); } catch {}
 
-    if (!gsRes.ok) {
+    if (!tokenRes.ok || !tokenData?.athlete?.id || !tokenData?.refresh_token) {
       return {
-        statusCode: 500,
-        body: "Google Sheet update failed: " + gsText
+        statusCode: 400,
+        body: JSON.stringify(
+          { ok: false, step: "token_exchange_failed", status: tokenRes.status, tokenText },
+          null,
+          2
+        ),
       };
     }
 
-    // 3️⃣ Success page
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "text/html" },
-      body: `
-        <html>
-        <body style="background:#0f172a;color:white;display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
-          <div style="text-align:center">
-            <h1>🔥 Compte connecté</h1>
-            <p>Strava est maintenant synchronisé.</p>
-          </div>
-        </body>
-        </html>
-      `
+    // 2) Update Google Sheet
+    const gsUrl = process.env.GS_WEBAPP_URL;
+    const writeKey = process.env.UBIQUE_WRITE_KEY;
+
+    if (!gsUrl || !writeKey) {
+      return { statusCode: 500, body: "Missing GS_WEBAPP_URL / UBIQUE_WRITE_KEY" };
+    }
+
+    const payload = {
+      key: writeKey,
+      mode: "updateStravaToken",
+      email,
+      handle, // optionnel (si tu veux)
+      athlete_id: tokenData.athlete.id,
+      refresh_token: tokenData.refresh_token,
+      expires_at: tokenData.expires_at || "",
+      updated_at: new Date().toISOString(),
     };
 
-  } catch (err) {
+    const saveRes = await fetch(gsUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const saveText = await saveRes.text();
+    let saveJson = {};
+    try { saveJson = JSON.parse(saveText); } catch {}
+
+    if (!saveRes.ok || saveJson.ok !== true) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify(
+          { ok: false, step: "sheet_update_failed", saveStatus: saveRes.status, saveText, payload },
+          null,
+          2
+        ),
+      };
+    }
+
+    // 3) Success page
     return {
-      statusCode: 500,
-      body: "Server error: " + err.message
+      statusCode: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: `
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UBIQUE — Connecté</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#111827);font-family:system-ui;color:#e2e8f0}
+  .card{width:min(520px,92vw);background:#1e293b;border-radius:22px;padding:44px 34px;text-align:center;box-shadow:0 40px 80px rgba(0,0,0,.55)}
+  .badge{display:inline-block;padding:10px 14px;border-radius:999px;background:linear-gradient(90deg,#ff512f,#dd2476);font-weight:800}
+  h1{margin:18px 0 8px;font-size:22px}
+  p{margin:0;color:#94a3b8}
+  a{display:inline-block;margin-top:22px;color:#fff;text-decoration:none;font-weight:800}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">🔥 UBIQUE</div>
+    <h1>Strava connecté</h1>
+    <p>Ton compte est synchronisé. Tu peux ouvrir le dashboard.</p>
+    <a href="/dashboard.html">Aller au dashboard →</a>
+  </div>
+</body></html>`,
     };
+  } catch (err) {
+    return { statusCode: 500, body: `Server error: ${err?.message || err}` };
   }
 };
