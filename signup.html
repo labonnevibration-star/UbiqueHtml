@@ -1,80 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>UBIQUE — Création profil</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#0f172a;
+  font-family:system-ui;
+  color:white;
+}
+.card{
+  width:420px;
+  padding:40px;
+  border-radius:20px;
+  background:#1e293b;
+  text-align:center;
+}
+input{
+  width:100%;
+  padding:14px;
+  margin-bottom:12px;
+  border-radius:10px;
+  border:none;
+}
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(90deg,#ff512f,#dd2476);
+  color:white;
+  font-weight:bold;
+}
+.status{
+  margin-top:15px;
+  font-size:14px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Créer ton profil</h2>
+
+  <input type="text" id="firstName" placeholder="Prénom">
+  <input type="text" id="lastName" placeholder="Nom">
+  <input type="email" id="email">
+  <input type="text" id="handle" placeholder="Pseudo">
+
+  <button onclick="createProfile()">Continuer</button>
+
+  <div id="status" class="status"></div>
+</div>
+
 <script>
 
-document.addEventListener("DOMContentLoaded", () => {
-
-  const GS_URL = "https://script.google.com/macros/s/AKfycby26yMqbGJmCZ9luoJftDTk8d8q4zV_8pe7dn1OXsCF8MJqhTGtkhH8hRbRuP0KUmEVaQ/exec";
-  const WRITE_KEY = "UBIQUE_2026_SECURE";
+window.onload = function(){
 
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
 
-  const emailInput = document.getElementById("email");
-  const status = document.getElementById("status");
-
-  if(!email){
-    status.textContent = "Email manquant. Retourne à l'accueil.";
-    status.style.color = "#ef4444";
-    return;
+  if(email){
+    document.getElementById("email").value = email;
   }
 
-  emailInput.value = email;
+}
 
-  window.createProfile = async function(){
+async function createProfile(){
 
-    const firstName = document.getElementById("firstName").value.trim();
-    const lastName = document.getElementById("lastName").value.trim();
-    const handle = document.getElementById("handle").value.trim();
+  document.getElementById("status").innerText = "Bouton cliqué ✔";
 
-    if(!firstName || !lastName || !handle){
-      alert("Remplis tous les champs");
-      return;
-    }
-
-    status.textContent = "Création du profil...";
-    status.style.color = "#94a3b8";
-
-    try{
-
-      const response = await fetch(GS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: WRITE_KEY,
-          mode: "createAthlete",
-          email: email,
-          first_name: firstName,
-          last_name: lastName,
-          handle: handle
-        })
-      });
-
-      if(!response.ok){
-        throw new Error("HTTP error " + response.status);
-      }
-
-      const result = await response.json();
-
-      if(result.ok !== true){
-        throw new Error("Apps Script returned invalid response");
-      }
-
-      status.textContent = "Profil créé ✔ Redirection...";
-      status.style.color = "#22c55e";
-
-      setTimeout(()=>{
-        window.location.href =
-          "/connect.html?email=" +
-          encodeURIComponent(email);
-      }, 800);
-
-    }catch(e){
-      console.error("SIGNUP ERROR:", e);
-      status.textContent = "Erreur serveur.";
-      status.style.color = "#ef4444";
-    }
-
-  };
-
-});
+}
 
 </script>
+
+</body>
+</html>
